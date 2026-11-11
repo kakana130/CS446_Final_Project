@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  checks:
+    name: Lint, types, unit + DB tests (PGlite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run check:contrast
+      - run: npm run check:provinces
+      - run: npm run test:coverage
+      - run: npm run test:db
+      - name: Dependency audit (production deps)
+        run: npm audit --omit=dev --audit-level=high
+
+  database:
+    name: Migrations + API integration (PostgreSQL 17, like Amazon RDS)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+      DATABASE_SSL: 'off'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Apply the schema (same script as on RDS)
+        run: npm run db:migrate
+      - name: Re-running migrations is a no-op
+        run: npm run db:migrate
+      - name: RLS + schema tests against real Postgres
+        run: npm run test:db
+      - name: API integration tests (route handlers; S3 and Lambda intercepted)
+        run: npm run test:integration
+        env:
+          IP_HASH_SECRET: ci-integration-ip-hash-secret-000000
+
+  build:
+    name: Build + client secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build with canary secrets
+        run: npm run build
+        env:
+          # Unique canary values: if any appears in a client file, the scan below fails.
+          DATABASE_URL: postgresql://ci:CI_CANARY_dbpass_3f9a@ci-db.example:5432/postgres
+          COGNITO_CLIENT_SECRET: CI_CANARY_cognito_6b1d
+          AUTH_SESSION_SECRET: CI_CANARY_session_2c7e9a4f1b3d5e7a9c0b2d4f6a8c
+          TURNSTILE_SECRET_KEY: CI_CANARY_turnstile_4e8b
+          VAPID_PRIVATE_KEY: CI_CANARY_vapid_91c3
+          CRON_SECRET: CI_CANARY_cron_0b7e6f4c3d2a1908
+          IP_HASH_SECRET: CI_CANARY_iphash_8c7d6e5f4a3b2c1d
+          ACCESS_LOG_KEY: Q0lfQ0FOQVJZX2FjY2Vzc19sb2dfa2V5XzAwMDAwMDA=
+      - name: Scan client bundle for secrets
+        run: npm run check:secrets
+        env:
+          DATABASE_URL: postgresql://ci:CI_CANARY_dbpass_3f9a@ci-db.example:5432/postgres
+          COGNITO_CLIENT_SECRET: CI_CANARY_cognito_6b1d
+          AUTH_SESSION_SECRET: CI_CANARY_session_2c7e9a4f1b3d5e7a9c0b2d4f6a8c
+          TURNSTILE_SECRET_KEY: CI_CANARY_turnstile_4e8b
+          VAPID_PRIVATE_KEY: CI_CANARY_vapid_91c3
+          CRON_SECRET: CI_CANARY_cron_0b7e6f4c3d2a1908
+          IP_HASH_SECRET: CI_CANARY_iphash_8c7d6e5f4a3b2c1d
+          ACCESS_LOG_KEY: Q0lfQ0FOQVJZX2FjY2Vzc19sb2dfa2V5XzAwMDAwMDA=

@@ -1,0 +1,19 @@
+# Installed by aws/ec2/setup.sh (placeholders are filled in there).
+[Unit]
+Description=Plate2Home (Next.js) behind Amazon CloudFront
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__APP_USER__
+WorkingDirectory=__APP_DIR__
+Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+ExecStart=/usr/local/bin/node __APP_DIR__/node_modules/next/dist/bin/next start -p 3000
+Restart=always
+RestartSec=5
+# Logs go to the journal: sudo journalctl -u plate2home -f
+
+[Install]
+WantedBy=multi-user.target

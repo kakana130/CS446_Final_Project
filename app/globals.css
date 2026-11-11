@@ -1,0 +1,177 @@
+@import 'tailwindcss';
+
+/*
+ * Plate2Home design tokens — Palette A "Signal".
+ * Raw values live in the two theme blocks below (checked by scripts/contrast-check.mjs).
+ * Components only use the semantic Tailwind names from @theme, never raw hex.
+ */
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* tokens:light */
+:root,
+[data-theme='light'] {
+  --p-bg: #f6f4ee;
+  --p-surface: #ffffff;
+  --p-surface-sunk: #eeebe2;
+  --p-ink: #15171a;
+  --p-ink-muted: #4a4f57;
+  --p-line: #15171a;
+  --p-line-soft: #d9d5ca;
+  --p-accent: #f5b700;
+  --p-on-accent: #15171a;
+  --p-accent-ink: #7a4b00;
+  --p-accent-soft: #fdf0c4;
+  --p-success: #1e6b3a;
+  --p-danger: #b42318;
+  --p-focus: #15171a;
+  --p-focus-offset: #f5b700;
+  --p-plate: #ffffff;
+  --p-plate-ink: #111111;
+  --p-plate-edge: #111111;
+  color-scheme: light;
+}
+
+/* tokens:dark */
+[data-theme='dark'] {
+  --p-bg: #111214;
+  --p-surface: #1a1c1f;
+  --p-surface-sunk: #0b0c0d;
+  --p-ink: #eeeae0;
+  --p-ink-muted: #a9a59b;
+  --p-line: #eeeae0;
+  --p-line-soft: #34373c;
+  --p-accent: #ffc53d;
+  --p-on-accent: #111214;
+  --p-accent-ink: #ffd36b;
+  --p-accent-soft: #3a2f12;
+  --p-success: #6fd39a;
+  --p-danger: #ff8a7a;
+  --p-focus: #ffc53d;
+  --p-focus-offset: #111214;
+  /* A real plate stays white; a soft edge stops it glaring on dark. */
+  --p-plate: #f4f2ec;
+  --p-plate-ink: #111111;
+  --p-plate-edge: #5a5d63;
+  color-scheme: dark;
+}
+
+@theme {
+  /* Drop Tailwind's default palette so only our tokens can be used. */
+  --color-*: initial;
+
+  --radius-*: initial;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-plate: 10px;
+
+  /* Body text never goes below 16px; Thai needs >= 1.6 line-height for tone marks. */
+  --text-*: initial;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.65;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.7;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.65;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.6;
+  --text-2xl: 1.875rem;
+  --text-2xl--line-height: 1.6;
+  --text-3xl: 2.25rem;
+  --text-3xl--line-height: 1.6;
+
+  --shadow-*: initial;
+  --shadow-sign: 0 3px 0 0 var(--p-line);
+  --shadow-sign-pressed: 0 1px 0 0 var(--p-line);
+
+  /* A line sweeping over a photo while plates are being looked for. */
+  --animate-scan: scan 1.6s ease-in-out infinite alternate;
+  @keyframes scan {
+    from {
+      top: 0%;
+    }
+    to {
+      top: 100%;
+    }
+  }
+}
+
+@theme inline {
+  --color-bg: var(--p-bg);
+  --color-surface: var(--p-surface);
+  --color-surface-sunk: var(--p-surface-sunk);
+  --color-ink: var(--p-ink);
+  --color-ink-muted: var(--p-ink-muted);
+  --color-line: var(--p-line);
+  --color-line-soft: var(--p-line-soft);
+  --color-accent: var(--p-accent);
+  --color-on-accent: var(--p-on-accent);
+  --color-accent-ink: var(--p-accent-ink);
+  --color-accent-soft: var(--p-accent-soft);
+  --color-success: var(--p-success);
+  --color-danger: var(--p-danger);
+  --color-focus: var(--p-focus);
+  --color-plate: var(--p-plate);
+  --color-plate-ink: var(--p-plate-ink);
+  --color-plate-edge: var(--p-plate-edge);
+
+  --font-body: var(--font-body-face), 'Noto Sans Thai Looped', 'Leelawadee UI', Tahoma, sans-serif;
+  --font-heading: var(--font-heading-face), var(--font-body-face), 'Leelawadee UI', sans-serif;
+  --font-plate: var(--font-plate-face), var(--font-body-face), sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+    line-height: 1.6;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* One consistent, highly visible focus ring for every interactive element. */
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--p-focus-offset);
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* PIN fields have their own show/hide button; hide Edge's built-in reveal icon. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
