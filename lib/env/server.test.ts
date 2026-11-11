@@ -33,6 +33,20 @@ describe('serverEnv', () => {
     expect(serverEnv().CRON_ENABLED).toBe(false);
   });
 
+  it('treats empty values (KEY= copied from .env.example) as not set', () => {
+    process.env.COGNITO_USER_POOL_ID = '';
+    process.env.COGNITO_DOMAIN = '';
+    process.env.DATABASE_CA_FILE = '';
+    process.env.ACCESS_LOG_KEY = '';
+    process.env.ADMIN_PASSWORD_HASH = '';
+    process.env.DATABASE_SSL = '';
+    const env = serverEnv();
+    expect(env.COGNITO_USER_POOL_ID).toBeUndefined();
+    expect(env.DATABASE_CA_FILE).toBeUndefined();
+    expect(env.DATABASE_SSL).toBe('verify');
+    expect(() => requireEnv('COGNITO_DOMAIN')).toThrow(/COGNITO_DOMAIN/);
+  });
+
   it('reports invalid variable names without leaking values', () => {
     process.env.IP_HASH_SECRET = 'short-secret-val';
     process.env.ACCESS_LOG_KEY = 'not-a-key';

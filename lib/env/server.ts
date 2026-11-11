@@ -89,14 +89,27 @@ let cached: ServerEnv | undefined;
 /** Only close the admin area when wrong; the public site keeps working without them. */
 const ADMIN_ONLY = new Set(['ADMIN_PASSWORD_HASH', 'ADMIN_SESSION_SECRET']);
 
+/**
+ * The environment with empty values dropped: `KEY=` in .env (as copied from .env.example)
+ * means "not set", not an empty string that fails validation and breaks every API route.
+ */
+function setValues(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined && value.trim() !== '') env[key] = value;
+  }
+  return env;
+}
+
 export function serverEnv(): ServerEnv {
   if (!cached) {
-    let parsed = schema.safeParse(process.env);
+    const raw = setValues();
+    let parsed = schema.safeParse(raw);
     let names = parsed.success ? [] : parsed.error.issues.map((i) => i.path.join('.'));
     if (names.length > 0 && names.every((n) => ADMIN_ONLY.has(n))) {
       // Report names only, never values.
       console.error(`[env] ignoring invalid ${names.join(', ')}: the admin area stays closed`);
-      const env = { ...process.env };
+      const env = { ...raw };
       for (const n of names) delete env[n];
       parsed = schema.safeParse(env);
       names = parsed.success ? [] : parsed.error.issues.map((i) => i.path.join('.'));
