@@ -10,6 +10,13 @@ import { markDevicePostsLinked, unlinkedDevicePosts } from '@/lib/client/devices
  * (BroadcastChannel, with a storage event as fallback) or the tab comes back into view.
  */
 
+/**
+ * Accounts are optional: they need Amazon Cognito, whose sign-in only works on an https site.
+ * A deployment served over plain http (EC2 + nginx, no CloudFront) leaves this off, and the
+ * sign-in UI is hidden; posts then belong to the device that made them.
+ */
+export const ACCOUNTS_ENABLED = process.env.NEXT_PUBLIC_FEATURE_ACCOUNTS === 'true';
+
 export type Session =
   | { status: 'loading' }
   | { status: 'signed-out' }

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # First-time setup on the EC2 instance (Amazon Linux 2023). Run from the project folder:
 #   bash aws/ec2/setup.sh
-# It installs Node.js 24, adds swap (so `next build` fits on a small instance), downloads the
-# RDS certificate bundle, applies the database schema to RDS, builds the app and runs it as a
-# systemd service on port 3000 (CloudFront's origin). Safe to run again.
+# It installs Node.js 24 and nginx, adds swap (so `next build` fits on a small instance),
+# downloads the RDS certificate bundle, applies the database schema to RDS, builds the app,
+# runs it as a systemd service on port 3000 and puts nginx in front of it on port 80.
+# Safe to run again.
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -43,6 +44,11 @@ if ! command -v node >/dev/null 2>&1 || [[ "$(node -v)" != v24.* ]]; then
 fi
 node -v
 
+echo ">> nginx"
+if ! command -v nginx >/dev/null 2>&1; then
+  sudo dnf install -y nginx >/dev/null
+fi
+
 echo ">> Amazon RDS certificate bundle"
 curl -fsSL https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem -o rds-global-bundle.pem
 
@@ -62,10 +68,21 @@ sudo systemctl daemon-reload
 sudo systemctl enable plate2home >/dev/null
 sudo systemctl restart plate2home
 
-echo ">> Waiting for the app on port 3000"
+echo ">> nginx on port 80"
+[ -f /etc/nginx/nginx.conf.orig ] || sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.orig
+sudo cp aws/ec2/nginx.conf /etc/nginx/nginx.conf
+sudo nginx -t
+sudo systemctl enable nginx >/dev/null
+sudo systemctl restart nginx
+
+echo ">> Waiting for the app"
 for _ in $(seq 1 30); do
-  if curl -fs -o /dev/null http://127.0.0.1:3000/; then
-    echo ">> Plate2Home is running on port 3000."
+  if curl -fs -o /dev/null http://127.0.0.1/; then
+    TOKEN="$(curl -fs -X PUT http://169.254.169.254/latest/api/token \
+      -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' || true)"
+    HOST="$(curl -fs -H "X-aws-ec2-metadata-token: $TOKEN" \
+      http://169.254.169.254/latest/meta-data/public-hostname || true)"
+    echo ">> Plate2Home is running: http://${HOST:-<EC2 Public IPv4 DNS>}/"
     exit 0
   fi
   sleep 2

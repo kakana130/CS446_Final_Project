@@ -8,16 +8,18 @@ This describes the system as built. The full design rationale and the phase plan
 Hosted on AWS (D-105; setup in [`AWS-DEPLOY.md`](../AWS-DEPLOY.md)):
 
 ```
-Phone browser ──HTTPS──▶ CloudFront ──HTTP:3000──▶ EC2: Next.js (systemd)
- • RSC pages (th at /,                              • proxy.ts: locale, CSP nonce
-   en at /en)                                       • Route handlers /api/*
- • Found flow only:                                   (zod → Origin → Turnstile → rate limit → DB)
-   Web Worker + ONNX                                • lib/db/server.ts ─▶ RDS PostgreSQL
- • Crops shown via                                  • lib/db/storage.ts ─▶ S3 (private bucket)
-   presigned S3 URLs                                • lib/auth/session.ts ─▶ Cognito (OAuth + PKCE)
-                                                    • lib/notify ─▶ Lambda plate2home-notify ─▶ SNS
-EventBridge (daily) ─▶ Lambda plate2home-cleanup ─▶ CloudFront ─▶ /api/cron/retention
+Phone browser ──HTTP :80──▶ EC2: nginx ──▶ Next.js (systemd, :3000)
+ • RSC pages (th at /,          • nginx sets X-Real-IP / X-Forwarded-For (not spoofable)
+   en at /en)                   • proxy.ts: locale, CSP nonce
+ • Found flow only:             • Route handlers /api/*
+   Web Worker + ONNX              (zod → Origin → Turnstile → rate limit → DB)
+ • Crops shown via              • lib/db/server.ts ─▶ RDS PostgreSQL
+   presigned S3 URLs            • lib/db/storage.ts ─▶ S3 (private bucket)
+                                • lib/notify ─▶ Lambda plate2home-notify ─▶ SNS
+EventBridge (daily) ─▶ Lambda plate2home-cleanup ─▶ http://<EC2>/api/cron/retention
 ```
+
+Accounts (Cognito) are off: Cognito needs https, and the course setup serves plain http.
 
 The public never talks to the database directly. Every public read and write goes through a
 Next.js route handler that returns only safe columns. The app connects to RDS as the schema

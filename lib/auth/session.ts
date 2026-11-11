@@ -6,7 +6,9 @@ import { ensureAccount } from '@/lib/db/accounts';
 import { serverEnv, type ServerEnv } from '@/lib/env/server';
 
 /**
- * Optional sign-in (D-085) through Amazon Cognito: the OAuth 2.0 authorization-code flow with
+ * Optional sign-in (D-085) through Amazon Cognito. It needs an https site (Cognito only redirects
+ * to https callback URLs), so the plain-http EC2 deployment leaves it unconfigured and the UI
+ * hides it (NEXT_PUBLIC_FEATURE_ACCOUNTS). When enabled: the OAuth 2.0 authorization-code flow with
  * PKCE against the user pool's domain, with Google as the identity provider (or Cognito's own
  * email accounts when COGNITO_IDENTITY_PROVIDER=COGNITO). The ID token is verified against the
  * pool's public keys, then the session lives in our own signed, httpOnly cookie. Data access
@@ -105,10 +107,9 @@ export function openValue<T extends { exp: number }>(
 }
 
 async function isSecure(env: ServerEnv): Promise<boolean> {
-  // Behind CloudFront the origin is plain http; APP_ORIGIN says the site is https.
+  // Behind a TLS-terminating proxy the app sees plain http; APP_ORIGIN says the site is https.
   return (
     (await headers()).get('x-forwarded-proto') === 'https' ||
-    (await headers()).get('cloudfront-forwarded-proto') === 'https' ||
     (env.APP_ORIGIN ?? '').startsWith('https://')
   );
 }

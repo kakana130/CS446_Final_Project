@@ -9,7 +9,7 @@ import { Button, Spinner } from '@/components/ui/Button';
 import { Link } from '@/i18n/navigation';
 import { postJson } from '@/lib/client/api';
 import { forgetDevicePost, readDevicePosts } from '@/lib/client/devices';
-import { useSession } from '@/lib/client/session';
+import { ACCOUNTS_ENABLED, useSession } from '@/lib/client/session';
 
 type State =
   | { phase: 'loading' }
@@ -116,7 +116,7 @@ export function MyPostsList() {
 
   return (
     <div className="space-y-4">
-      <p className="text-ink-muted">{t('intro')}</p>
+      <p className="text-ink-muted">{t(ACCOUNTS_ENABLED ? 'intro' : 'introDevice')}</p>
       {notice && <Alert tone={notice.tone} title={notice.text} live />}
       {askFeedback && (
         <p>

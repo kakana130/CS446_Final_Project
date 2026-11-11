@@ -35,10 +35,10 @@ export default function proxy(request: NextRequest) {
       process.env.S3_BUCKET && process.env.AWS_REGION
         ? `https://${process.env.S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com`
         : undefined,
-    // Behind CloudFront the request to EC2 is plain http; the viewer's connection is https.
+    // Behind a TLS-terminating proxy the request to the app is plain http; APP_ORIGIN says
+    // whether visitors use https (the plain-http EC2 + nginx setup does not).
     secure:
       request.nextUrl.protocol === 'https:' ||
-      request.headers.get('cloudfront-forwarded-proto') === 'https' ||
       (process.env.APP_ORIGIN ?? '').startsWith('https://'),
   });
 

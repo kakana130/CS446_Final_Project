@@ -59,21 +59,6 @@ describe('IP handling', () => {
     expect(clientIp(new Headers())).toBe('0.0.0.0');
   });
 
-  it("trusts CloudFront's viewer address over spoofable headers (IPv4 and IPv6)", () => {
-    expect(
-      clientIp(
-        new Headers({
-          'cloudfront-viewer-address': '203.0.113.9:51234',
-          'x-real-ip': '1.1.1.1',
-          'x-forwarded-for': '6.6.6.6, 203.0.113.9',
-        }),
-      ),
-    ).toBe('203.0.113.9');
-    expect(clientIp(new Headers({ 'cloudfront-viewer-address': '2001:db8::1:443' }))).toBe(
-      '2001:db8::1',
-    );
-  });
-
   it('hashes deterministically within a day and differently across days', () => {
     const day1 = new Date('2026-09-28T03:00:00Z');
     const day1Later = new Date('2026-09-28T15:00:00Z');

@@ -7,7 +7,7 @@ import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { Link } from '@/i18n/navigation';
 import { readDevicePosts } from '@/lib/client/devices';
 import { inAppBrowser } from '@/lib/client/inapp';
-import { useSession } from '@/lib/client/session';
+import { ACCOUNTS_ENABLED, useSession } from '@/lib/client/session';
 
 function subscribeStorage(onChange: () => void) {
   window.addEventListener('storage', onChange);
@@ -37,6 +37,8 @@ export function HomeAccountHint() {
     () => inAppBrowser(navigator.userAgent) !== null,
     () => false,
   );
+
+  if (!ACCOUNTS_ENABLED) return null;
 
   let content = null;
   if (session.status === 'signed-in') {

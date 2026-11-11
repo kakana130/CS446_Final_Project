@@ -3,19 +3,12 @@ import { createHmac } from 'node:crypto';
 import { requireEnv } from '@/lib/env/server';
 
 /**
- * Client IP behind Amazon CloudFront. CloudFront sets `CloudFront-Viewer-Address`
- * (`<ip>:<port>`) itself, so a viewer can't spoof it; the EC2 security group only admits
- * CloudFront, so the header is always CloudFront's. Without it (local dev, or a direct hit in
- * development) fall back to `x-real-ip` / the first `x-forwarded-for` entry. Only ever used
- * hashed.
+ * Client IP behind nginx on the EC2 instance (aws/ec2/nginx.conf). nginx overwrites both
+ * `X-Real-IP` and `X-Forwarded-For` with the address of the connection it received, so a
+ * visitor can't spoof them; the security group keeps the app's own port 3000 closed. Without nginx (local
+ * development) Next.js fills `x-forwarded-for` from the socket. Only ever used hashed.
  */
 export function clientIp(headers: Headers): string {
-  const viewer = headers.get('cloudfront-viewer-address')?.trim();
-  if (viewer) {
-    const cut = viewer.lastIndexOf(':');
-    const ip = cut > 0 ? viewer.slice(0, cut) : viewer;
-    if (ip) return ip;
-  }
   const real = headers.get('x-real-ip')?.trim();
   if (real) return real;
   const forwarded = headers.get('x-forwarded-for')?.split(',')[0]?.trim();

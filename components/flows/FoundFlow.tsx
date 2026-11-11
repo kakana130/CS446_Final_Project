@@ -27,6 +27,7 @@ import { postForm, postJson } from '@/lib/client/api';
 import { ownPostsFor, ownPostsReady, useOwnPosts } from '@/lib/client/own-posts';
 import { samePlate } from '@/lib/plate/same';
 import { rememberDevicePost } from '@/lib/client/devices';
+import { ACCOUNTS_ENABLED } from '@/lib/client/session';
 import { cropToBlob, loadPhoto, type LoadedPhoto, type Rect } from '@/lib/client/image';
 import { findPlates, OCR_ENABLED, onOcrLoading, readPlate } from '@/lib/client/ocr';
 import { plateDisplay } from '@/lib/plate/canonical';
@@ -430,7 +431,9 @@ export function FoundFlow() {
         )}
         {finished && (
           <>
-            <p className="text-ink-muted">{t('doneManage')}</p>
+            <p className="text-ink-muted">
+              {t(ACCOUNTS_ENABLED ? 'doneManage' : 'doneManageDevice')}
+            </p>
             <Link href="/my-posts" className={buttonClass('primary')}>
               {tMine('title')}
             </Link>

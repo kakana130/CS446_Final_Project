@@ -28,6 +28,7 @@ import { Link } from '@/i18n/navigation';
 import { CONSENT_VERSION } from '@/lib/config/app';
 import { postJson } from '@/lib/client/api';
 import { rememberDevicePost } from '@/lib/client/devices';
+import { ACCOUNTS_ENABLED } from '@/lib/client/session';
 import {
   ownFoundIds,
   ownPostsFor,
@@ -234,7 +235,7 @@ export function LostFlow() {
             </ul>
           </Alert>
         )}
-        <p className="text-ink-muted">{t('doneManage')}</p>
+        <p className="text-ink-muted">{t(ACCOUNTS_ENABLED ? 'doneManage' : 'doneManageDevice')}</p>
         <Link href="/my-posts" className={buttonClass('primary')}>
           {tMine('title')}
         </Link>

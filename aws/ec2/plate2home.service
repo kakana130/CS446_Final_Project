@@ -1,6 +1,6 @@
 # Installed by aws/ec2/setup.sh (placeholders are filled in there).
 [Unit]
-Description=Plate2Home (Next.js) behind Amazon CloudFront
+Description=Plate2Home (Next.js) behind nginx
 After=network-online.target
 Wants=network-online.target
 
@@ -10,6 +10,8 @@ User=__APP_USER__
 WorkingDirectory=__APP_DIR__
 Environment=NODE_ENV=production
 Environment=NEXT_TELEMETRY_DISABLED=1
+# Visitors come in through nginx on port 80; the security group keeps port 3000 closed.
+# (Don't add `-H 127.0.0.1`: with it, Next.js 16 redirects the Thai pages to themselves.)
 ExecStart=/usr/local/bin/node __APP_DIR__/node_modules/next/dist/bin/next start -p 3000
 Restart=always
 RestartSec=5

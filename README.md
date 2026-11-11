@@ -23,8 +23,9 @@ a match** (AWS Lambda + Amazon SNS).
   [`docs/ocr-eval.md`](docs/ocr-eval.md).
 - **Email alerts (new):** the owner can tick "email me when someone finds this plate". Amazon
   SNS asks them to confirm, and every new match is emailed by the `plate2home-notify` Lambda.
-- **Optional sign-in with Amazon Cognito** (Cognito email accounts or Google) to see and manage
-  your posts on any device. Without signing in, posts belong to the device that made them.
+- **No accounts needed:** posts belong to the device that made them. (Optional sign-in through
+  Amazon Cognito is still in the code, but it needs an https site, so the plain-http EC2
+  deployment leaves it off with `NEXT_PUBLIC_FEATURE_ACCOUNTS=false`.)
 - **Reports, feedback and an admin area**, Terms of Service and Privacy Policy in Thai and
   English, and a **daily retention job** (EventBridge → Lambda) that really deletes expired data,
   photos and alert subscriptions.
@@ -32,7 +33,7 @@ a match** (AWS Lambda + Amazon SNS).
 ## Stack
 
 Next.js 16 · TypeScript strict · Tailwind CSS 4 · next-intl 4 (Thai default, English at `/en`) ·
-**AWS:** EC2 (Node.js 24, systemd) behind CloudFront · RDS for PostgreSQL · S3 · Cognito ·
+**AWS:** EC2 (Node.js 24, systemd, nginx on port 80) · RDS for PostgreSQL · S3 ·
 Lambda (Node.js 22) · SNS · EventBridge Scheduler · Tesseract.js + a custom recognizer ·
 Vitest · PGlite for database tests and local development · Playwright.
 

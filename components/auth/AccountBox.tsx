@@ -5,7 +5,7 @@ import { AccountBadge } from '@/components/auth/AccountBadge';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { buttonClass } from '@/components/ui/Button';
 import { inAppBrowser, lineExternalUrl } from '@/lib/client/inapp';
-import { signOut, useSession } from '@/lib/client/session';
+import { ACCOUNTS_ENABLED, signOut, useSession } from '@/lib/client/session';
 
 /**
  * Optional Google sign-in (D-085): what it gives (managing posts from any device), the
@@ -17,7 +17,7 @@ export function AccountBox({ context }: { context: 'post' | 'manage' }) {
   const t = useTranslations('account');
   const session = useSession();
 
-  if (session.status === 'loading') return null;
+  if (!ACCOUNTS_ENABLED || session.status === 'loading') return null;
 
   if (session.status === 'signed-in') {
     return (

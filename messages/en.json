@@ -183,6 +183,7 @@
     "submit": "Report lost plate",
     "doneTitle": "Reported. When someone finds this plate, we'll match it straight away.",
     "doneManage": "Check matches and manage the post under “My posts” on this device, or on any device if you sign in with Google.",
+    "doneManageDevice": "Check matches and manage the post under “My posts” on this device.",
     "doneMatches": "Someone may have found your plate",
     "viewMatch": "View details"
   },
@@ -228,6 +229,7 @@
     "viewMatch": "View details",
     "reviewNote": "This plate will be shown once a moderator has checked it.",
     "doneManage": "Check matches and manage the post under “My posts” on this device, or on any device if you sign in with Google.",
+    "doneManageDevice": "Check matches and manage the post under “My posts” on this device.",
     "lostCheck": {
       "checking": "Checking whether anyone is looking for this plate…",
       "exactTitle": "Someone is looking for this plate!",
@@ -331,6 +333,7 @@
   "myPosts": {
     "title": "My posts",
     "intro": "Posts made on this device and by the Google account you are signed in with, with their matches. You can manage them here.",
+    "introDevice": "Posts made on this device, with their matches. You can manage them here.",
     "empty": "No posts yet",
     "emptyBody": "Posts you create will appear here.",
     "lost": "Lost (my plate)",
