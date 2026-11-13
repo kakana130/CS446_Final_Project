@@ -28,6 +28,7 @@ import { ownPostsFor, ownPostsReady, useOwnPosts } from '@/lib/client/own-posts'
 import { samePlate } from '@/lib/plate/same';
 import { rememberDevicePost } from '@/lib/client/devices';
 import { ACCOUNTS_ENABLED } from '@/lib/client/session';
+import { uid } from '@/lib/client/uid';
 import { cropToBlob, loadPhoto, type LoadedPhoto, type Rect } from '@/lib/client/image';
 import { findPlates, OCR_ENABLED, onOcrLoading, readPlate } from '@/lib/client/ocr';
 import { plateDisplay } from '@/lib/plate/canonical';
@@ -76,8 +77,6 @@ interface Batch {
   uploadToken: string;
   deviceToken: string;
 }
-
-const uid = () => crypto.randomUUID();
 
 export function FoundFlow() {
   const t = useTranslations('found');

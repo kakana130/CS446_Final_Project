@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { buttonClass } from '@/components/ui/Button';
+import { copyText } from '@/lib/client/uid';
 
 /** LINE add-friend link: personal IDs use `~id`, official accounts start with `@`. */
 export function lineUrl(id: string): string {
@@ -19,12 +20,10 @@ function CopyButton({ value }: { value: string }) {
       type="button"
       className="min-h-11 px-2 text-sm font-semibold text-accent-ink underline decoration-2 underline-offset-4"
       onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(value);
+        // If copying is blocked, the value is visible and selectable anyway.
+        if (await copyText(value)) {
           setCopied(true);
           setTimeout(() => setCopied(false), 2000);
-        } catch {
-          // Clipboard blocked: the value is visible and selectable anyway.
         }
       }}
     >
