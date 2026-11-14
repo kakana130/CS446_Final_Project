@@ -3,10 +3,11 @@ import { createHmac } from 'node:crypto';
 import { requireEnv } from '@/lib/env/server';
 
 /**
- * Client IP behind nginx on the EC2 instance (aws/ec2/nginx.conf). nginx overwrites both
- * `X-Real-IP` and `X-Forwarded-For` with the address of the connection it received, so a
- * visitor can't spoof them; the security group keeps the app's own port 3000 closed. Without nginx (local
- * development) Next.js fills `x-forwarded-for` from the socket. Only ever used hashed.
+ * Client IP behind nginx on the EC2 instances (aws/ec2/nginx.conf). nginx works out the
+ * visitor's address (from the load balancer's X-Forwarded-For, trusted only on connections
+ * from inside the VPC) and overwrites both `X-Real-IP` and `X-Forwarded-For` with it, so a
+ * visitor can't spoof them; security groups keep the app's own port 3000 closed. Without nginx
+ * (local development) Next.js fills `x-forwarded-for` from the socket. Only ever used hashed.
  */
 export function clientIp(headers: Headers): string {
   const real = headers.get('x-real-ip')?.trim();

@@ -33,7 +33,8 @@ a match** (AWS Lambda + Amazon SNS).
 ## Stack
 
 Next.js 16 · TypeScript strict · Tailwind CSS 4 · next-intl 4 (Thai default, English at `/en`) ·
-**AWS:** EC2 (Node.js 24, systemd, nginx on port 80) · RDS for PostgreSQL · S3 ·
+**AWS:** EC2 (Node.js 24, systemd, nginx) in an Auto Scaling group behind an Application Load
+Balancer, in the project's own VPC · RDS for PostgreSQL · S3 ·
 Lambda (Node.js 22) · SNS · EventBridge Scheduler · Tesseract.js + a custom recognizer ·
 Vitest · PGlite for database tests and local development · Playwright.
 

@@ -8,18 +8,23 @@ This describes the system as built. The full design rationale and the phase plan
 Hosted on AWS (D-105; setup in [`AWS-DEPLOY.md`](../AWS-DEPLOY.md)):
 
 ```
-Phone browser ──HTTP :80──▶ EC2: nginx ──▶ Next.js (systemd, :3000)
- • RSC pages (th at /,          • nginx sets X-Real-IP / X-Forwarded-For (not spoofable)
-   en at /en)                   • proxy.ts: locale, CSP nonce
- • Found flow only:             • Route handlers /api/*
+Phone browser ──HTTP :80──▶ ALB (2 AZs) ──▶ EC2 ×2 (Auto Scaling): nginx ──▶ Next.js (:3000)
+ • RSC pages (th at /,          • nginx sets X-Real-IP / X-Forwarded-For from the ALB's
+   en at /en)                     X-Forwarded-For, trusted only from inside the VPC
+                                • proxy.ts: locale, CSP nonce
+ • Found flow only:             • Route handlers /api/* (ALB health check: /api/health)
    Web Worker + ONNX              (zod → Origin → Turnstile → rate limit → DB)
  • Crops shown via              • lib/db/server.ts ─▶ RDS PostgreSQL
    presigned S3 URLs            • lib/db/storage.ts ─▶ S3 (private bucket)
                                 • lib/notify ─▶ Lambda plate2home-notify ─▶ SNS
-EventBridge (daily) ─▶ Lambda plate2home-cleanup ─▶ http://<EC2>/api/cron/retention
+EventBridge (daily) ─▶ Lambda plate2home-cleanup ─▶ http://<ALB>/api/cron/retention
 ```
 
 Accounts (Cognito) are off: Cognito needs https, and the course setup serves plain http.
+
+The instances are identical copies of one AMI and keep no state: photos are in S3, everything
+else in RDS (private subnets), and cookies are signed with secrets every instance shares. A
+new version is built once on a build instance and rolled out as a new AMI (D-107).
 
 The public never talks to the database directly. Every public read and write goes through a
 Next.js route handler that returns only safe columns. The app connects to RDS as the schema

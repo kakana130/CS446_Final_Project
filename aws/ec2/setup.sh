@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# First-time setup on the EC2 instance (Amazon Linux 2023). Run from the project folder:
+# First-time setup on the build instance (Amazon Linux 2023). Run from the project folder:
 #   bash aws/ec2/setup.sh
 # It installs Node.js 24 and nginx, adds swap (so `next build` fits on a small instance),
 # downloads the RDS certificate bundle, applies the database schema to RDS, builds the app,
 # runs it as a systemd service on port 3000 and puts nginx in front of it on port 80.
+# The instance is then imaged (AMI) for the Auto Scaling group (AWS-DEPLOY.md, step 10).
 # Safe to run again.
 set -euo pipefail
 
@@ -13,7 +14,7 @@ cd "$APP_DIR"
 
 if [ ! -f .env ]; then
   cp .env.example .env
-  echo ">> Created $APP_DIR/.env. Fill it in (AWS-DEPLOY.md, step 7), then run this script again."
+  echo ">> Created $APP_DIR/.env. Fill it in (AWS-DEPLOY.md, step 9), then run this script again."
   exit 1
 fi
 
@@ -77,12 +78,10 @@ sudo systemctl restart nginx
 
 echo ">> Waiting for the app"
 for _ in $(seq 1 30); do
-  if curl -fs -o /dev/null http://127.0.0.1/; then
-    TOKEN="$(curl -fs -X PUT http://169.254.169.254/latest/api/token \
-      -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' || true)"
-    HOST="$(curl -fs -H "X-aws-ec2-metadata-token: $TOKEN" \
-      http://169.254.169.254/latest/meta-data/public-hostname || true)"
-    echo ">> Plate2Home is running: http://${HOST:-<EC2 Public IPv4 DNS>}/"
+  if curl -fs -o /dev/null http://127.0.0.1/api/health && curl -fs -o /dev/null http://127.0.0.1/; then
+    ORIGIN="$(sed -n 's/^APP_ORIGIN=//p' .env | tr -d '\r')"
+    echo ">> Plate2Home is running on this instance (health check: /api/health)."
+    echo ">> Site address, through the load balancer: ${ORIGIN:-<APP_ORIGIN>}/"
     exit 0
   fi
   sleep 2
