@@ -75,6 +75,18 @@ asg() {
 }
 VERSION="$(asg LaunchTemplate.Version)"
 read -r -a OLD <<<"$(asg "Instances[?LaunchTemplate.Version!='$VERSION'].InstanceId")"
+# When the Learner Lab session ends (its timer runs out), AWS denies every call through the
+# voc-cancel-cred policy. Stop with a clear message instead of waiting on errors.
+check_lab() {
+  local err
+  if ! err="$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names plate2home-asg     --query 'AutoScalingGroups[0].AutoScalingGroupName' --output text 2>&1 >/dev/null)" &&
+    grep -q voc-cancel-cred <<<"$err"; then
+    echo "!! The Learner Lab session ended (the timer ran out), so AWS refuses every call."
+    echo "   Start Lab again, open CloudShell again, then run this script again: it carries on"
+    echo "   where it stopped (the new image is kept)."
+    exit 1
+  fi
+}
 healthy_new() {
   local n=0 id state
   for id in $(asg "Instances[?LaunchTemplate.Version=='$VERSION' && LifecycleState=='InService'].InstanceId"); do
@@ -95,6 +107,7 @@ for ID in "${OLD[@]}"; do
     aws ec2 terminate-instances --instance-ids "$ID" >/dev/null
   for _ in $(seq 1 45); do
     sleep 20
+    check_lab
     NEW="$(healthy_new)"
     [ "$NEW" -ge "$DONE" ] && break
     echo "   waiting for the new server to be healthy ..."
@@ -108,6 +121,7 @@ done
 echo ">> Waiting for 2 healthy web servers (3-5 minutes)"
 HEALTHY=0
 for _ in $(seq 1 45); do
+  check_lab
   HEALTHY="$(aws elbv2 describe-target-health --target-group-arn "$TG" \
     --query "length(TargetHealthDescriptions[?TargetHealth.State=='healthy' && Target.Id!='$BUILD'])" \
     --output text)"
