@@ -146,10 +146,13 @@ Go to **SNS → Topics → Create topic**.
 
 Don't add subscriptions yourself. The notify Lambda subscribes each owner when they opt in.
 
-The display name is the sender name on match alerts, so they arrive from **Plate2Home**. The
-confirmation email that comes first is always sent by SNS itself as "AWS Notifications" and
-can't be changed. The site tells owners to expect it, both next to the checkbox and after they
-submit. That email is SNS's double opt-in: no one can sign someone else's address up for alerts.
+The display name is the sender name on every email from this topic, both the confirmation and
+the match alerts, so they arrive from **Plate2Home**. Without it they come from "AWS
+Notifications". The confirmation email's subject and text are fixed by SNS (English); the site
+tells owners to expect it, next to the checkbox and after they submit. It is SNS's double
+opt-in: no one can sign someone else's address up for alerts. The match alert itself is
+written by the notify Lambda: an English email with both plates, exact or possible match, when
+and where the plate was found, the match link, safety tips and how to stop the alerts.
 For a topic that already exists: **SNS → Topics → `plate2home-alerts` → Edit → Display name**.
 
 ## 6. AWS Lambda — `plate2home-notify`
@@ -322,8 +325,8 @@ balancer, so whichever instance is healthy runs it.
    **Confirm subscription**.
 3. On a phone, go to **"I found a plate"** → photograph a picture of the same plate → confirm
    the plate number → submit. You should see the match at once.
-4. Within seconds you get an email from **Plate2Home**: _Plate2Home: a plate that may be yours
-   was found_, with a link to the match.
+4. Within seconds you get an email from **Plate2Home**: _Plate2Home: someone found a plate
+   matching yours_ (_…similar to yours_ on a near match), with a link to the match.
 5. **High availability:** stop one of the two Auto Scaling instances. The site keeps working
    (the load balancer only uses the healthy one), and within a few minutes the Auto Scaling
    group launches a replacement (Activity tab).

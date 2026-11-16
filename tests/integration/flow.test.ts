@@ -305,7 +305,16 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
     const notify = lambdaEvents.filter((e) => e.action === 'notify');
     expect(notify).toHaveLength(1);
     expect(notify[0]!.alerts).toEqual([
-      { matchId, ownerKey, plate: expect.any(String), locale: 'th' },
+      {
+        matchId,
+        ownerKey,
+        plate: expect.any(String),
+        foundPlate: expect.any(String),
+        kind: 'exact',
+        foundAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+        handover: 'police_station',
+        locale: 'th',
+      },
     ]);
     // Only the hash travels with alerts, never the email.
     expect(JSON.stringify(notify[0])).not.toContain(ownerEmail);

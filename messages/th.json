@@ -155,7 +155,7 @@
     "email": "อีเมล",
     "showEmail": "แสดงอีเมลนี้ด้วย",
     "notifyEmail": "ส่งอีเมลแจ้งฉันเมื่อมีคนเจอป้ายนี้",
-    "notifyEmailHint": "เราส่งอีเมลผ่าน Amazon SNS อีเมลแรกจะมาจาก AWS Notifications หัวข้อ \"AWS Notification - Subscription Confirmation\" กด Confirm subscription เพื่อยืนยันว่าเป็นอีเมลของคุณ หลังจากนั้นอีเมลแจ้งเตือนจะมาในชื่อ {brand}",
+    "notifyEmailHint": "{brand} จะส่งอีเมลภาษาอังกฤษหัวข้อ \"AWS Notification - Subscription Confirmation\" มาก่อน (เป็นอีเมลมาตรฐานของ Amazon SNS) กด Confirm subscription ในอีเมลนั้นเพื่อเปิดการแจ้งเตือน",
     "introLost": "คนที่เก็บป้ายของคุณได้จะเห็นช่องทางนี้ก็ต่อเมื่อจับคู่กันได้แล้ว ใส่อย่างน้อย 1 ช่องทาง",
     "introFound": "เจ้าของป้ายจะเห็นช่องทางนี้ก็ต่อเมื่อจับคู่กันได้แล้ว ใส่อย่างน้อย 1 ช่องทาง"
   },
@@ -186,7 +186,7 @@
     "doneManageDevice": "ดูผลการจับคู่และจัดการโพสต์ได้ที่ “โพสต์ของฉัน” บนเครื่องนี้",
     "doneMatches": "มีคนเก็บป้ายที่อาจเป็นของคุณได้แล้ว",
     "doneAlertsTitle": "อีกขั้นเดียว: ยืนยันอีเมลเพื่อเปิดการแจ้งเตือน",
-    "doneAlerts": "เปิดอีเมลจาก AWS Notifications (no-reply@sns.amazonaws.com) หัวข้อ \"AWS Notification - Subscription Confirmation\" ที่ส่งไปยัง {email} แล้วกด Confirm subscription ถ้าไม่เห็นให้ดูในโฟลเดอร์สแปม เมื่อมีคนเจอป้ายนี้ อีเมลแจ้งเตือนจะมาในชื่อ {brand}",
+    "doneAlerts": "เปิดอีเมลจาก {brand} (no-reply@sns.amazonaws.com) หัวข้อ \"AWS Notification - Subscription Confirmation\" ที่ส่งไปยัง {email} แล้วกด Confirm subscription อีเมลนี้เป็นภาษาอังกฤษเพราะส่งจากระบบของ Amazon SNS ถ้าไม่เห็นให้ดูในโฟลเดอร์สแปม",
     "viewMatch": "ดูรายละเอียด"
   },
   "found": {

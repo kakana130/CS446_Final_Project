@@ -155,7 +155,7 @@
     "email": "Email",
     "showEmail": "Show this email too",
     "notifyEmail": "Email me when someone finds this plate",
-    "notifyEmailHint": "We send alerts through Amazon SNS. The first email comes from AWS Notifications, titled \"AWS Notification - Subscription Confirmation\". Click Confirm subscription to show the address is yours. After that, alerts come from {brand}.",
+    "notifyEmailHint": "{brand} will first send an email titled \"AWS Notification - Subscription Confirmation\" (a standard Amazon SNS email). Click Confirm subscription in it to turn alerts on.",
     "introLost": "Only the person who found your plate sees this, and only once there is a match. Add at least one.",
     "introFound": "Only the plate's owner sees this, and only once there is a match. Add at least one."
   },
@@ -186,7 +186,7 @@
     "doneManageDevice": "Check matches and manage the post under “My posts” on this device.",
     "doneMatches": "Someone may have found your plate",
     "doneAlertsTitle": "One more step: confirm your email to turn alerts on",
-    "doneAlerts": "Open the email from AWS Notifications (no-reply@sns.amazonaws.com) titled \"AWS Notification - Subscription Confirmation\" sent to {email}, and click Confirm subscription. If you can't find it, check your spam folder. When someone finds this plate, the alert will come from {brand}.",
+    "doneAlerts": "Open the email from {brand} (no-reply@sns.amazonaws.com) titled \"AWS Notification - Subscription Confirmation\", sent to {email}, and click Confirm subscription. If you can't find it, check your spam folder.",
     "viewMatch": "View details"
   },
   "found": {

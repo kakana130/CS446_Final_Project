@@ -7,8 +7,10 @@
 // Events:
 //   { action: 'subscribe', email, ownerKey }
 //       Email subscription filtered on the owner's key. SNS emails a confirmation link first.
-//   { action: 'notify', appOrigin, alerts: [{ matchId, ownerKey, plate, locale }] }
-//       One message per match; only the subscription whose filter has that key receives it.
+//   { action: 'notify', appOrigin,
+//     alerts: [{ matchId, ownerKey, plate, foundPlate, kind, foundAt, handover, locale }] }
+//       One English email per match; only the subscription whose filter has that key receives
+//       it. `locale` picks the language of the site links and button names.
 //   { action: 'prune', keep: [ownerKey, ...] }
 //       Unsubscribe confirmed subscriptions whose key is not in `keep` (retention).
 //
@@ -61,29 +63,91 @@ async function subscribe({ email, ownerKey }) {
   return { subscribed: 1 };
 }
 
-function message({ appOrigin, matchId, plate, locale }) {
-  const th = locale !== 'en';
-  const link = `${appOrigin}${th ? '' : '/en'}/match/${matchId}`;
-  return th
-    ? [
-        `มีคนพบป้ายทะเบียนที่อาจเป็นของคุณ: ${plate}`,
-        '',
-        'ดูรูปป้ายและติดต่อผู้ที่เก็บได้ที่:',
-        link,
-        '',
-        'ถ้าได้ป้ายคืนแล้ว กด "ได้ป้ายคืนแล้ว" ในหน้า "โพสต์ของฉัน" แล้วอีเมลแจ้งเตือนจะหยุดเอง',
-        '— Plate2Home',
-      ].join('\n')
-    : [
-        `Someone found a plate that may be yours: ${plate}`,
-        '',
-        'See the photo and contact the finder:',
-        link,
-        '',
-        'Got it back? Mark it as returned under "My posts" and these emails stop.',
-        '— Plate2Home',
-      ].join('\n');
+// Button and page names as the owner sees them on the site, in the language they used.
+const UI = {
+  th: {
+    reveal: "ดูช่องทางติดต่อคนที่เก็บป้ายได้ (See the finder's contact details)",
+    myPosts: 'โพสต์ของฉัน (My posts)',
+    resolve: 'ได้ป้ายคืนแล้ว (I got my plate back)',
+    optIn: 'ส่งอีเมลแจ้งฉันเมื่อมีคนเจอป้ายนี้ (Email me when someone finds this plate)',
+  },
+  en: {
+    reveal: "See the finder's contact details",
+    myPosts: 'My posts',
+    resolve: 'I got my plate back',
+    optIn: 'Email me when someone finds this plate',
+  },
+};
+
+const WHERE = {
+  with_finder: 'With the person who found it',
+  police_station:
+    "Handed in at a police station (which one is shown with the finder's contact details)",
+};
+
+function foundWhen(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Bangkok',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d)} (Bangkok time)`;
 }
+
+// SNS email subjects must be ASCII, under 100 characters.
+function subject(kind) {
+  return kind === 'exact'
+    ? 'Plate2Home: someone found a plate matching yours'
+    : 'Plate2Home: someone found a plate similar to yours';
+}
+
+// Plain text: SNS sends email bodies as plain text and adds its own unsubscribe footer.
+function message({ appOrigin, matchId, plate, foundPlate, kind, foundAt, handover, locale }) {
+  const ui = UI[locale === 'en' ? 'en' : 'th'];
+  const base = `${appOrigin}${locale === 'en' ? '/en' : ''}`;
+  const exact = kind === 'exact';
+  const when = foundWhen(foundAt);
+  return [
+    'Hello,',
+    '',
+    exact
+      ? 'Good news: someone has found a licence plate that matches the one you reported lost on Plate2Home.'
+      : 'Someone has found a licence plate that is similar to the one you reported lost on Plate2Home. It may be yours.',
+    '',
+    `Your lost plate: ${plate}`,
+    `Plate they found: ${foundPlate}`,
+    exact
+      ? 'Match: Exact (same number)'
+      : 'Match: Possible (the numbers are close but not identical, so check the photo carefully)',
+    ...(when ? [`Found: ${when}`] : []),
+    ...(WHERE[handover] ? [`Where the plate is now: ${WHERE[handover]}`] : []),
+    '',
+    'SEE THE PHOTO AND CONTACT THE FINDER',
+    `${base}/match/${matchId}`,
+    `Check the photo first. If it is your plate, tap "${ui.reveal}" on that page to get the finder's LINE ID, phone or email and arrange to get it back.`,
+    '',
+    'STAY SAFE',
+    '- Never transfer money before you have the plate back.',
+    '- Ask the finder for a photo of the plate next to a note with your name, so you know they really have it.',
+    '- Bring your vehicle registration book and ID card when you collect it, to show the plate is yours.',
+    '',
+    'GOT YOUR PLATE BACK?',
+    `Open "${ui.myPosts}" on the phone or computer you used to report it, and tap "${ui.resolve}". This closes your report and stops these emails.`,
+    `${base}/my-posts`,
+    '',
+    'WHY YOU GOT THIS EMAIL',
+    `You reported this plate lost on Plate2Home and ticked "${ui.optIn}". To stop these emails without closing your report, use the unsubscribe link at the bottom of this email.`,
+    '',
+    'Plate2Home',
+    base,
+  ].join('\n');
+}
+
+const KINDS = new Set(['exact', 'near']);
 
 async function notify({ appOrigin, alerts }) {
   if (typeof appOrigin !== 'string' || !/^https?:\/\/[^/\s]+$/.test(appOrigin)) {
@@ -92,15 +156,20 @@ async function notify({ appOrigin, alerts }) {
   let sent = 0;
   for (const a of Array.isArray(alerts) ? alerts.slice(0, 100) : []) {
     if (!UUID.test(a?.matchId) || !KEY.test(a?.ownerKey) || typeof a.plate !== 'string') continue;
+    const kind = KINDS.has(a.kind) ? a.kind : 'near';
     await sns.send(
       new PublishCommand({
         TopicArn: TOPIC_ARN,
-        // SNS email subjects must be ASCII.
-        Subject: 'Plate2Home: a plate that may be yours was found',
+        Subject: subject(kind),
         Message: message({
           appOrigin,
           matchId: a.matchId,
           plate: a.plate.slice(0, 64),
+          foundPlate:
+            typeof a.foundPlate === 'string' ? a.foundPlate.slice(0, 64) : a.plate.slice(0, 64),
+          kind,
+          foundAt: typeof a.foundAt === 'string' ? a.foundAt : '',
+          handover: a.handover,
           locale: a.locale,
         }),
         MessageAttributes: { owner_key: { DataType: 'String', StringValue: a.ownerKey } },

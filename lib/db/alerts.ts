@@ -6,6 +6,11 @@ export interface MatchAlert {
   matchId: string;
   lostPostId: string;
   plateDisplay: string;
+  /** The plate as the finder entered it (differs from the lost plate on a near match). */
+  foundPlateDisplay: string;
+  /** ISO timestamp of the found post. */
+  foundAt: string;
+  handover: 'with_finder' | 'police_station' | null;
   locale: 'th' | 'en';
   email: string;
 }
@@ -18,6 +23,9 @@ export async function matchAlerts(matchIds: string[]): Promise<MatchAlert[]> {
       match_id: string;
       lost_post_id: string;
       plate_display: string;
+      found_plate_display: string;
+      found_created_at: string | Date;
+      found_handover: 'with_finder' | 'police_station' | null;
       locale: 'th' | 'en';
       email: string;
     }[]
@@ -27,6 +35,9 @@ export async function matchAlerts(matchIds: string[]): Promise<MatchAlert[]> {
     matchId: r.match_id,
     lostPostId: r.lost_post_id,
     plateDisplay: r.plate_display,
+    foundPlateDisplay: r.found_plate_display,
+    foundAt: new Date(r.found_created_at).toISOString(),
+    handover: r.found_handover,
     locale: r.locale,
     email: r.email,
   }));

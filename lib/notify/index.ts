@@ -39,7 +39,13 @@ type NotifyEvent =
       alerts: {
         matchId: string;
         ownerKey: string;
+        /** The owner's lost plate, and the plate as the finder entered it. */
         plate: string;
+        foundPlate: string;
+        kind: RecordedMatch['kind'];
+        foundAt: string;
+        handover: 'with_finder' | 'police_station' | null;
+        /** The site language the owner used: links in the email open that language. */
         locale: 'th' | 'en';
       }[];
     }
@@ -69,6 +75,7 @@ export async function notifyNewMatches(matches: RecordedMatch[]): Promise<void> 
   if (matches.length === 0 || !alertsConfigured()) return;
   const alerts = await matchAlerts(matches.map((m) => m.matchId));
   if (alerts.length === 0) return;
+  const kinds = new Map(matches.map((m) => [m.matchId, m.kind]));
   const appOrigin = serverEnv().APP_ORIGIN ?? '';
   await invoke({
     action: 'notify',
@@ -77,6 +84,10 @@ export async function notifyNewMatches(matches: RecordedMatch[]): Promise<void> 
       matchId: a.matchId,
       ownerKey: ownerKey(a.email),
       plate: a.plateDisplay,
+      foundPlate: a.foundPlateDisplay,
+      kind: kinds.get(a.matchId) ?? 'near',
+      foundAt: a.foundAt,
+      handover: a.handover,
       locale: a.locale,
     })),
   });
