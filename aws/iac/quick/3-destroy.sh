@@ -22,7 +22,7 @@ if [ -d "$WORK" ]; then
 fi
 
 IDS="$(aws ec2 describe-instances \
-  --filters Name=tag:Name,Values=*plate2home-build* Name=instance-state-name,Values=pending,running,stopping,stopped \
+  --filters "Name=tag:Name,Values=*plate2home-build*" Name=instance-state-name,Values=pending,running,stopping,stopped \
   --query 'Reservations[].Instances[].InstanceId' --output text)"
 if [ -n "$IDS" ]; then
   echo ">> Terminating plate2home-build ($IDS)"

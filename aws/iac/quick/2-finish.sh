@@ -19,7 +19,7 @@ echo ">> Preparing OpenTofu (downloads its AWS plugin, about 1 minute)"
 tofu init -input=false >/dev/null
 
 BUILD="$(aws ec2 describe-instances \
-  --filters Name=tag:Name,Values=*plate2home-build* Name=instance-state-name,Values=running,stopped \
+  --filters "Name=tag:Name,Values=*plate2home-build*" Name=instance-state-name,Values=running,stopped \
   --query 'Reservations[0].Instances[0].InstanceId' --output text)"
 if [ "$BUILD" = "None" ]; then
   echo "!! No instance named plate2home-build. Check its name in EC2 -> Instances."
