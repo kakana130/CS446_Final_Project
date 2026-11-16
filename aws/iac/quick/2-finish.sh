@@ -18,11 +18,24 @@ cd "$WORK"
 echo ">> Preparing OpenTofu (downloads its AWS plugin, about 1 minute)"
 tofu init -input=false >/dev/null
 
-BUILD="$(aws ec2 describe-instances \
-  --filters "Name=tag:Name,Values=*plate2home-build*" Name=instance-state-name,Values=running,stopped \
-  --query 'Reservations[0].Instances[0].InstanceId' --output text)"
-if [ "$BUILD" = "None" ]; then
+builds() {
+  aws ec2 describe-instances \
+    --filters "Name=tag:Name,Values=*plate2home-build*" "Name=instance-state-name,Values=$1" \
+    --query 'Reservations[].Instances[].InstanceId' --output text
+}
+# The running build instance (the one just updated); otherwise the only one there is.
+read -r -a RUNNING <<<"$(builds running)"
+read -r -a ALL <<<"$(builds running,stopped)"
+if [ "${#RUNNING[@]}" -eq 1 ]; then
+  BUILD="${RUNNING[0]}"
+elif [ "${#RUNNING[@]}" -eq 0 ] && [ "${#ALL[@]}" -eq 1 ]; then
+  BUILD="${ALL[0]}"
+elif [ "${#ALL[@]}" -eq 0 ]; then
   echo "!! No instance named plate2home-build. Check its name in EC2 -> Instances."
+  exit 1
+else
+  echo "!! More than one plate2home-build (${ALL[*]}). Terminate the one you don't use"
+  echo "   (EC2 -> Instances -> Instance state -> Terminate), then run this again."
   exit 1
 fi
 
@@ -53,6 +66,45 @@ tofu apply -auto-approve -input=false -var "repo_dir=$REPO"
 
 TG="$(aws elbv2 describe-target-groups --names plate2home-tg \
   --query 'TargetGroups[0].TargetGroupArn' --output text)"
+
+# A new version: replace the web servers still on an older template version, one at a time,
+# so the site stays up. (Learner Lab denies instance refresh, which would do this for us.)
+asg() {
+  aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names plate2home-asg \
+    --query "AutoScalingGroups[0].$1" --output text
+}
+VERSION="$(asg LaunchTemplate.Version)"
+read -r -a OLD <<<"$(asg "Instances[?LaunchTemplate.Version!='$VERSION'].InstanceId")"
+healthy_new() {
+  local n=0 id state
+  for id in $(asg "Instances[?LaunchTemplate.Version=='$VERSION' && LifecycleState=='InService'].InstanceId"); do
+    state="$(aws elbv2 describe-target-health --target-group-arn "$TG" --targets "Id=$id" \
+      --query 'TargetHealthDescriptions[0].TargetHealth.State' --output text)"
+    [ "$state" = "healthy" ] && n=$((n + 1))
+  done
+  echo "$n"
+}
+DONE=0
+for ID in "${OLD[@]}"; do
+  DONE=$((DONE + 1))
+  echo ">> Replacing web server $ID with the new version ($DONE of ${#OLD[@]}, 3-5 minutes)"
+  # If Learner Lab refuses the Auto Scaling call too, terminating the instance itself works:
+  # the group sees it gone and launches a replacement from the newest template version.
+  aws autoscaling terminate-instance-in-auto-scaling-group --instance-id "$ID" \
+    --no-should-decrement-desired-capacity >/dev/null 2>&1 ||
+    aws ec2 terminate-instances --instance-ids "$ID" >/dev/null
+  for _ in $(seq 1 45); do
+    sleep 20
+    NEW="$(healthy_new)"
+    [ "$NEW" -ge "$DONE" ] && break
+    echo "   waiting for the new server to be healthy ..."
+  done
+  if [ "$NEW" -lt "$DONE" ]; then
+    echo "!! The new server did not become healthy. See EC2 -> Target groups -> plate2home-tg -> Targets."
+    exit 1
+  fi
+done
+
 echo ">> Waiting for 2 healthy web servers (3-5 minutes)"
 HEALTHY=0
 for _ in $(seq 1 45); do

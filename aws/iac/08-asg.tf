@@ -35,17 +35,12 @@ resource "aws_autoscaling_group" "web" {
   health_check_type         = "ELB"
   health_check_grace_period = 120
 
+  # New instances use the newest template version. Running ones are not replaced here:
+  # Learner Lab denies autoscaling:StartInstanceRefresh, so quick/2-finish.sh replaces them
+  # one at a time (terminate one, wait for its replacement to be healthy, then the next).
   launch_template {
     id      = aws_launch_template.web.id
     version = aws_launch_template.web.latest_version
-  }
-
-  # A new AMI (new template version) replaces the instances one at a time.
-  instance_refresh {
-    strategy = "Rolling"
-    preferences {
-      min_healthy_percentage = 50
-    }
   }
 }
 
