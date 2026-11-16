@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { PlateView } from '@/components/plate/PlateView';
 import { ReportButton } from '@/components/report/ReportButton';
-import { RevealContact } from '@/components/reveal/RevealContact';
+import { MatchNowFromPost } from '@/components/reveal/MatchNowFromPost';
 import { PageShell } from '@/components/site/PageShell';
 import { getFoundPost } from '@/lib/db/found-post';
 import { signCropUrls } from '@/lib/db/storage';
@@ -15,7 +15,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('title'), robots: { index: false, follow: false } };
 }
 
-/** A found plate: photo, plate, when, where it is now, and the contact-reveal checkpoint. */
+/**
+ * A found plate: photo, plate, when and where it is now. No contact here: the owner presses
+ * "Match Now!", reports the plate lost, and sees the finder's contact on the match page.
+ */
 export default async function FoundPostPage({ params }: PageProps<'/[locale]/post/[id]'>) {
   const { id } = await params;
   if (!UUID.test(id)) notFound();
@@ -49,7 +52,7 @@ export default async function FoundPostPage({ params }: PageProps<'/[locale]/pos
           )}
         </p>
         <p>{t('compare')}</p>
-        <RevealContact postId={post.postId} />
+        <MatchNowFromPost plate={post.plate} />
         <div className="border-t-2 border-line-soft pt-2">
           <ReportButton postId={post.postId} />
         </div>

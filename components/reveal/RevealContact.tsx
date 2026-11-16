@@ -25,7 +25,7 @@ interface Contact {
  * The anti-scam checkpoint (spec §3.5): the safety advice must be acknowledged and Turnstile
  * passed before the finder's contact is fetched. Every reveal is logged server-side.
  */
-export function RevealContact({ postId }: { postId: string }) {
+export function RevealContact({ postId, matchId }: { postId: string; matchId: string }) {
   const t = useTranslations('reveal');
   const tc = useTranslations('common');
   const tn = useTranslations('note');
@@ -51,7 +51,7 @@ export function RevealContact({ postId }: { postId: string }) {
     setBusy(true);
     const res = await postJson<{ contact: Contact }>(
       '/api/reveal',
-      { postId, acknowledged: true, turnstileToken: token },
+      { postId, matchId, acknowledged: true, turnstileToken: token },
       0,
     );
     setBusy(false);

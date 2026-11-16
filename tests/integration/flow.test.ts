@@ -402,6 +402,7 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
 
   const revealBody = (postId: string, extra: Record<string, unknown> = {}) => ({
     postId,
+    matchId,
     acknowledged: true,
     turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX',
     ...extra,
@@ -432,6 +433,17 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
     );
     expect(res.status).toBe(404);
     expect(JSON.stringify(await res.json())).not.toContain('itest.owner');
+  });
+
+  it('never reveals a contact outside a match', async () => {
+    const res = await routes.reveal.POST(
+      jsonRequest(
+        '/api/reveal',
+        revealBody(foundPostId, { matchId: '00000000-0000-4000-8000-000000000000' }),
+      ),
+      noParams,
+    );
+    expect(res.status).toBe(404);
   });
 
   it('requires the safety acknowledgement', async () => {

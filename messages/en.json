@@ -270,7 +270,8 @@
     "posted": "Found {when}",
     "cropAlt": "Photo of a found plate",
     "viewPost": "View details and contact the finder",
-    "matchNow": "Match Now! This plate is mine"
+    "matchNow": "Match Now! This plate is mine",
+    "contactAfterMatch": "The finder's contact details show after Match Now! (on the match page), and both sides get an email."
   },
   "match": {
     "title": "Match details",
@@ -330,7 +331,9 @@
     "foundAt": "Found {when}",
     "withFinder": "The finder has the plate",
     "atPolice": "The plate is at a police station",
-    "compare": "If you're the owner, compare the photo with your plate before getting in touch."
+    "compare": "If you're the owner, compare the photo with your plate before getting in touch.",
+    "matchNow": "Match Now! This plate is mine",
+    "matchNowHint": "Report this plate lost: it is matched and both sides get an email. Then see the finder's contact on the match page."
   },
   "note": {
     "label": "Note",

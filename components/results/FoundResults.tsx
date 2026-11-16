@@ -4,7 +4,6 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { PlateView } from '@/components/plate/PlateView';
 import { ReportButton } from '@/components/report/ReportButton';
 import { Button } from '@/components/ui/Button';
-import { RevealContact } from '@/components/reveal/RevealContact';
 import { textLink } from '@/components/ui/styles';
 import { Link } from '@/i18n/navigation';
 import type { Plate } from '@/lib/plate/types';
@@ -89,7 +88,7 @@ export function FoundResults({
                 {tOwn('manageYours')}
               </Link>
             ) : (
-              <RevealContact postId={r.postId} />
+              <p className="text-sm text-ink-muted">{t('contactAfterMatch')}</p>
             )}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <Link

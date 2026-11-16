@@ -192,10 +192,11 @@ describe('noteSchema', () => {
 });
 
 describe('revealSchema', () => {
-  it('requires a post UUID, the safety acknowledgement and a token', async () => {
+  it('requires a post and match UUID, the safety acknowledgement and a token', async () => {
     const { revealSchema } = await import('./schemas');
     const ok = {
       postId: '00000000-0000-4000-8000-000000000001',
+      matchId: '00000000-0000-4000-8000-000000000002',
       acknowledged: true,
       turnstileToken: 't',
     };
@@ -204,6 +205,8 @@ describe('revealSchema', () => {
       acknowledged: 'consent_required',
     });
     expect(revealSchema.safeParse({ ...ok, postId: 'not-a-uuid' }).success).toBe(false);
+    // Contacts are revealed only within a match.
+    expect(revealSchema.safeParse({ ...ok, matchId: undefined }).success).toBe(false);
   });
 });
 

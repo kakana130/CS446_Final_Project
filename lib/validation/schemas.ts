@@ -189,6 +189,8 @@ export const searchSchema = z.object({ plate: plateInputSchema });
 
 export const revealSchema = z.object({
   postId: z.uuid(),
+  /** The match the found post is part of: contacts are revealed only within a match. */
+  matchId: z.uuid(),
   /** The user ticked "I've read the safety advice" in the reveal dialog. */
   acknowledged: z.literal(true, { error: 'consent_required' }),
   turnstileToken: z.string().min(1).max(2048),

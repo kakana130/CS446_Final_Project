@@ -7,6 +7,7 @@ import { ContactFields, EMPTY_CONTACT, type ContactDraft } from '@/components/fo
 import {
   errorsUnder,
   plateErrorsFrom,
+  LOST_DRAFT_KEY,
   readDraft,
   useStep,
   writeDraft,
@@ -46,7 +47,7 @@ const STEPS = ['plate', 'contact', 'confirm'] as const;
 /** Email alerts through Amazon SNS; on when the deployment sets NEXT_PUBLIC_FEATURE_ALERTS. */
 const ALERTS_ENABLED = process.env.NEXT_PUBLIC_FEATURE_ALERTS === 'true';
 type Step = (typeof STEPS)[number];
-const DRAFT_KEY = 'p2h.draft.lost';
+const DRAFT_KEY = LOST_DRAFT_KEY;
 
 interface Created {
   deviceToken: string;

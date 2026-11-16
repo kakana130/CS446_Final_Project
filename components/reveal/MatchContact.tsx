@@ -142,7 +142,7 @@ export function MatchContact({
         <p className="font-semibold">{t('youAreOwner')}</p>
       )}
       <ManyFindersAlert count={finders} />
-      <RevealContact postId={foundPostId} />
+      <RevealContact postId={foundPostId} matchId={matchId} />
     </div>
   );
 }

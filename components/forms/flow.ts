@@ -4,6 +4,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 import type { PlateFieldErrors } from '@/components/plate/PlateInput';
 
+/** sessionStorage key of the lost-plate report draft (also filled by "Match Now!" on a post). */
+export const LOST_DRAFT_KEY = 'p2h.draft.lost';
+
 /**
  * Flow step lives in `?step=` so the browser Back button moves between steps; form state
  * stays in the component (and a sessionStorage draft), so going back never loses input.
