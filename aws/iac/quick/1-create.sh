@@ -46,6 +46,61 @@ for N in public1 public2; do
   aws ec2 modify-subnet-attribute --subnet-id "$SUBNET" --map-public-ip-on-launch
 done
 
+# The three security groups: find them, and put back any rule the console steps left out.
+# The usual slip is typing the rules under Outbound, which also removes "All traffic" out.
+VPC="$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=plate2home-vpc \
+  --query 'Vpcs[0].VpcId' --output text)"
+sg_id() {
+  aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC" "Name=group-name,Values=$1" \
+    --query 'SecurityGroups[0].GroupId' --output text
+}
+ALB_SG="$(sg_id plate2home-alb)"
+WEB_SG="$(sg_id plate2home-web)"
+DB_SG="$(sg_id plate2home-db)"
+if [ "$ALB_SG" = "None" ] || [ "$WEB_SG" = "None" ] || [ "$DB_SG" = "None" ]; then
+  echo "!! Security groups must be named exactly plate2home-alb, plate2home-web, plate2home-db"
+  echo "   (VPC plate2home-vpc, no spaces). Found in that VPC, between [ ]:"
+  aws ec2 describe-security-groups --filters "Name=vpc-id,Values=$VPC" \
+    --query 'SecurityGroups[].GroupName' --output text | tr '\t' '\n' | sed 's/.*/   [&]/'
+  exit 1
+fi
+rule() { # rule <what> <aws ec2 args...>: add it; already there is fine
+  local what="$1"
+  shift
+  if aws ec2 "$@" >/dev/null 2>&1; then echo "   + added the missing rule: $what"; fi
+}
+echo ">> Checking the security groups"
+rule "plate2home-alb inbound HTTP 80 from anywhere" authorize-security-group-ingress \
+  --group-id "$ALB_SG" --protocol tcp --port 80 --cidr 0.0.0.0/0
+rule "plate2home-web inbound HTTP 80 from plate2home-alb" authorize-security-group-ingress \
+  --group-id "$WEB_SG" --protocol tcp --port 80 --source-group "$ALB_SG"
+rule "plate2home-web inbound SSH 22 from anywhere" authorize-security-group-ingress \
+  --group-id "$WEB_SG" --protocol tcp --port 22 --cidr 0.0.0.0/0
+rule "plate2home-db inbound PostgreSQL 5432 from plate2home-web" authorize-security-group-ingress \
+  --group-id "$DB_SG" --protocol tcp --port 5432 --source-group "$WEB_SG"
+for G in "$ALB_SG" "$WEB_SG" "$DB_SG"; do
+  rule "outbound All traffic on $G" authorize-security-group-egress --group-id "$G" \
+    --ip-permissions 'IpProtocol=-1,IpRanges=[{CidrIp=0.0.0.0/0}]'
+done
+
+# The build instance: exactly one, with a public address (otherwise it has no internet).
+read -r -a BUILDS <<<"$(aws ec2 describe-instances \
+  --filters "Name=tag:Name,Values=*plate2home-build*" Name=instance-state-name,Values=pending,running,stopped \
+  --query 'Reservations[].Instances[].InstanceId' --output text)"
+BUILD_WARNING=""
+if [ "${#BUILDS[@]}" -gt 1 ]; then
+  BUILD_WARNING="!! There are ${#BUILDS[@]} instances named plate2home-build (${BUILDS[*]}). Terminate the one you don't use."
+elif [ "${#BUILDS[@]}" -eq 1 ]; then
+  IP="$(aws ec2 describe-instances --instance-ids "${BUILDS[0]}" \
+    --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)"
+  STATE="$(aws ec2 describe-instances --instance-ids "${BUILDS[0]}" \
+    --query 'Reservations[0].Instances[0].State.Name' --output text)"
+  if [ "$IP" = "None" ] && [ "$STATE" != "stopped" ]; then
+    BUILD_WARNING="!! plate2home-build (${BUILDS[0]}) has no public IP, so it can't reach the internet. Terminate it and launch it again with Auto-assign public IP = Enable."
+  fi
+fi
+[ -n "$BUILD_WARNING" ] && echo "$BUILD_WARNING"
+
 echo ">> Creating RDS, S3, SNS, Lambda x2, EventBridge and the load balancer (about 10 minutes)"
 echo ">> Preparing OpenTofu (downloads its AWS plugin, about 1 minute)"
 tofu init -input=false >/dev/null
@@ -83,4 +138,5 @@ echo "echo '$B64' | base64 -d > /tmp/p2h.sh && bash /tmp/p2h.sh; rm -f /tmp/p2h.
 echo "=========== TO HERE ==========="
 echo
 echo "Website address: $(tofu output -raw site_url)"
+[ -n "$BUILD_WARNING" ] && echo "$BUILD_WARNING"
 echo "PART 1 DONE"

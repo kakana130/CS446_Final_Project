@@ -43,11 +43,19 @@ The same files, run for you by three scripts, for the simple guide
 exist:
 
 1. `bash ~/CS446_Final_Project/aws/iac/quick/1-create.sh` installs OpenTofu, makes a random
-   RDS password, turns on auto-assign public IPv4 for both public subnets, applies `00`–`07`,
-   then prints one block to paste on the build instance (clone, `.env`, `setup.sh`).
+   RDS password, turns on auto-assign public IPv4 for both public subnets, adds any missing
+   security-group rule (inbound as in the guide, outbound "All traffic"), warns if the build
+   instance has no public IP or there are two, applies `00`–`07`, then prints one line to paste
+   on the build instance (clone, `.env`, `setup.sh`).
 2. `bash ~/CS446_Final_Project/aws/iac/quick/2-finish.sh` images the build instance, applies
-   `08-asg.tf`, waits for two healthy targets and stops the build instance.
+   `08-asg.tf`, replaces web servers still on an older template version one at a time
+   (Learner Lab denies instance refresh), waits for two healthy targets and stops the build
+   instance. For a new version: `update.sh` on the build instance, delete the `ami_id` line in
+   `terraform.tfvars`, run it again.
 3. `bash ~/CS446_Final_Project/aws/iac/quick/3-destroy.sh` runs `tofu destroy`, terminates the
    build instance and deletes its images and snapshots. The VPC is deleted in the console.
+4. `bash ~/CS446_Final_Project/aws/iac/quick/reset-all.sh` starts over: it deletes every
+   Plate2Home resource by name, without the OpenTofu state (also leftovers of the Manual
+   guide), including the VPC, then clears `~/plate2home-iac`. It asks you to type `DELETE`.
 
-Each script can be run again; it only creates what is missing.
+Scripts 1–3 can be run again; they only create what is missing.
