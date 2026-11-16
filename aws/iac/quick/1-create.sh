@@ -12,6 +12,9 @@ WORK="$HOME/plate2home-iac"
 TOFU_VERSION=1.13.9
 export AWS_DEFAULT_REGION=us-east-1
 export PATH="$HOME/.local/bin:$PATH"
+# Provider plugins (the AWS one is ~700 MB) go to /tmp: CloudShell's home folder holds only
+# 1 GB. The state stays in $WORK; `tofu init` fetches the plugins again in a new session.
+export TF_DATA_DIR=/tmp/plate2home-tofu
 
 if ! command -v tofu >/dev/null 2>&1; then
   echo ">> Installing OpenTofu $TOFU_VERSION"
@@ -27,6 +30,7 @@ tofu version | sed -n 1p
 
 mkdir -p "$WORK"
 cd "$WORK"
+rm -rf "$WORK/.terraform" # plugins from an older run, now kept in TF_DATA_DIR
 # RDS master password: random letters and digits, kept only in this folder.
 [ -f terraform.tfvars ] || echo "db_password = \"$(openssl rand -hex 16)\"" >terraform.tfvars
 cp "$REPO"/aws/iac/0[0-7]-*.tf .

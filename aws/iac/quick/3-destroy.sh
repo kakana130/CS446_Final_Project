@@ -9,9 +9,13 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 WORK="$HOME/plate2home-iac"
 export AWS_DEFAULT_REGION=us-east-1
 export PATH="$HOME/.local/bin:$PATH"
+# Provider plugins (the AWS one is ~700 MB) go to /tmp: CloudShell's home folder holds only
+# 1 GB. The state stays in $WORK; `tofu init` fetches the plugins again in a new session.
+export TF_DATA_DIR=/tmp/plate2home-tofu
 
 if [ -d "$WORK" ]; then
   cd "$WORK"
+  tofu init -input=false >/dev/null
   echo ">> tofu destroy (about 10 minutes, mostly RDS)"
   tofu destroy -auto-approve -input=false -var "repo_dir=$REPO"
 fi
