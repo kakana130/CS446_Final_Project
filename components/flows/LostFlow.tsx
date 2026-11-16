@@ -299,7 +299,10 @@ export function LostFlow() {
                 )}
                 {/* Two found posts for the same number are often the front and rear plates. */}
                 <ManyFindersAlert count={search.results.filter((r) => r.kind === 'exact').length} />
-                <FoundResults results={search.results} />
+                <FoundResults
+                  results={search.results}
+                  onMatchNow={reported ? undefined : () => go('contact')}
+                />
                 {!reported && (
                   <div className="space-y-2 rounded-md border-2 border-line-soft p-3">
                     <p className="text-sm">{t('notYours')}</p>

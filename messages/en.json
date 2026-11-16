@@ -137,7 +137,9 @@
       "not_found": "We couldn't find this post. It may have been removed.",
       "admin_login": "Sign in as admin first.",
       "signed_out": "Please sign in first, then try again.",
-      "already_reported": "You have already reported this plate lost. See “My posts”."
+      "already_reported": "You have already reported this plate lost. See “My posts”.",
+      "too_soon": "Too fast. Wait 5 seconds and try again.",
+      "alerts_off": "Email alerts are not set up."
     }
   },
   "consent": {
@@ -240,7 +242,8 @@
       "exactBody": "Finish posting (step 2) and you and the owner will each see the other’s contact details.",
       "nearTitle": "Someone is looking for a similar plate",
       "nearBody": "Check the letters, number and province against the real plate, then post. The owner will be asked to check whether it's theirs.",
-      "none": "No one has reported this plate lost yet. Post it anyway: if the owner reports it later, they are matched automatically."
+      "none": "No one has reported this plate lost yet. Post it anyway: if the owner reports it later, they are matched automatically.",
+      "matchNow": "Match Now! Tell the owner"
     },
     "cropThis": "Add this plate",
     "cropHint": "Drag inside the box to move it and drag a corner dot to resize it to fit the plate.",
@@ -266,7 +269,8 @@
     "nearHint": "The number may differ slightly. Compare it with the photo.",
     "posted": "Found {when}",
     "cropAlt": "Photo of a found plate",
-    "viewPost": "View details and contact the finder"
+    "viewPost": "View details and contact the finder",
+    "matchNow": "Match Now! This plate is mine"
   },
   "match": {
     "title": "Match details",
@@ -290,7 +294,12 @@
     "manyOwnersTitle": "{count, plural, one {# person says this is their plate} other {# people say this is their plate}}",
     "manyOwnersBody": "Return it only to someone who shows you the vehicle registration book, with the plate number matching and the name matching their ID card. If you are not sure, don’t hand it over yet, or take it to a police station.",
     "manyFindersTitle": "{count, plural, one {# found post for this number} other {# found posts for this number}}",
-    "manyFindersBody": "They may be the front and rear plates, or the same plate posted twice. Look at each photo and contact every finder."
+    "manyFindersBody": "They may be the front and rear plates, or the same plate posted twice. Look at each photo and contact every finder.",
+    "matchNow": "Match Now! Email both sides",
+    "matchNowWait": "Wait {seconds} s",
+    "matchNowHint": "Amazon SNS emails the owner and the finder, each with the other's contact details (only people who gave an email and clicked Confirm subscription).",
+    "matchNowSent": "Email sent ({count, plural, one {# person} other {# people}})",
+    "matchNowNone": "Neither side gave an email, so no email could be sent. Use the contact details below."
   },
   "reveal": {
     "button": "See the finder's contact details",

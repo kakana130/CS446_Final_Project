@@ -120,6 +120,7 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
     feedback: typeof import('@/app/api/feedback/route');
     adminLogin: typeof import('@/app/api/admin/login/route');
     adminAction: typeof import('@/app/api/admin/action/route');
+    matchNotify: typeof import('@/app/api/match-notify/route');
   };
   let db: typeof import('@/lib/db/server');
   let matches: typeof import('@/lib/db/matches');
@@ -133,6 +134,7 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
       lostCheck: await import('@/app/api/lost-check/route'),
       reveal: await import('@/app/api/reveal/route'),
       revealOwner: await import('@/app/api/reveal-owner/route'),
+      matchNotify: await import('@/app/api/match-notify/route'),
       myPosts: await import('@/app/api/my-posts/route'),
       manage: await import('@/app/api/manage/route'),
       report: await import('@/app/api/report/route'),
@@ -333,6 +335,34 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
     expect(data![0]!.notified_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
+  it('Match Now! emails the match again, at most once every 5 seconds', async () => {
+    const before = lambdaEvents.length;
+    const res = await routes.matchNotify.POST(
+      jsonRequest('/api/match-notify', { matchId }),
+      noParams,
+    );
+    expect(res.status).toBe(200);
+    // Only the owner gave an email in this pair.
+    expect((await res.json()).recipients).toBe(1);
+    const notify = lambdaEvents.slice(before).filter((e) => e.action === 'notify');
+    expect(notify).toHaveLength(1);
+    expect(notify[0]!.alerts).toEqual([
+      expect.objectContaining({ matchId, ownerKey, role: 'owner', kind: 'exact' }),
+    ]);
+
+    const again = await routes.matchNotify.POST(
+      jsonRequest('/api/match-notify', { matchId }),
+      noParams,
+    );
+    expect(again.status).toBe(429);
+    expect((await again.json()).code).toBe('too_soon');
+
+    const missing = await routes.matchNotify.POST(
+      jsonRequest('/api/match-notify', { matchId: '00000000-0000-4000-8000-000000000000' }),
+      noParams,
+    );
+    expect(missing.status).toBe(404);
+  });
   it('finds the found plate by search, with a signed crop URL and no contact data', async () => {
     const res = await routes.search.POST(
       jsonRequest('/api/search', { plate: { ...plate, letters: 'ฬ?' } }),

@@ -638,7 +638,7 @@ export function FoundFlow() {
                               {tOwn('sameInBatch', { n: twin + 1 })}
                             </p>
                           )}
-                          <LostWatchHint draft={p.draft} />
+                          <LostWatchHint draft={p.draft} onMatchNow={() => void checkPlates()} />
                         </>
                       );
                     })()}

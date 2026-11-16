@@ -19,6 +19,8 @@ export const RATE_LIMITS = {
   // Starting Google sign-in (each start leaves a PKCE flow in Supabase Auth).
   'auth:login': { windowSeconds: 10 * 60, max: 30 },
   report: { windowSeconds: 60 * 60, max: 10 },
+  // "Match Now!" (email both sides of a match again); also 5 s per match in the database.
+  'match:notify': { windowSeconds: 10 * 60, max: 30 },
   feedback: { windowSeconds: 60 * 60, max: 5 },
   // Admin password: per IP, and for everyone together (a distributed guess still stops).
   'admin:login': { windowSeconds: 15 * 60, max: 5 },

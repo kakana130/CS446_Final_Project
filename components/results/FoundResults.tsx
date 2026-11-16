@@ -3,6 +3,7 @@
 import { useFormatter, useTranslations } from 'next-intl';
 import { PlateView } from '@/components/plate/PlateView';
 import { ReportButton } from '@/components/report/ReportButton';
+import { Button } from '@/components/ui/Button';
 import { RevealContact } from '@/components/reveal/RevealContact';
 import { textLink } from '@/components/ui/styles';
 import { Link } from '@/i18n/navigation';
@@ -24,8 +25,14 @@ export interface FoundResult {
 export function FoundResults({
   results,
   ownIds,
+  onMatchNow,
 }: {
   results: FoundResult[];
+  /**
+   * "Match Now!": report the plate lost right away, so the match is recorded and both sides
+   * are emailed (the owner's report matches every result shown here).
+   */
+  onMatchNow?: () => void;
   /** The user's own found posts: marked, and no offer to contact themselves (D-091). */
   ownIds?: Set<string>;
 }) {
@@ -93,6 +100,11 @@ export function FoundResults({
               </Link>
               {!ownIds?.has(r.postId) && <ReportButton postId={r.postId} />}
             </div>
+            {onMatchNow && !ownIds?.has(r.postId) && (
+              <Button block onClick={onMatchNow}>
+                {t('matchNow')}
+              </Button>
+            )}
           </div>
         </li>
       ))}

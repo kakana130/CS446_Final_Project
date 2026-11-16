@@ -6,6 +6,7 @@ export interface MatchAlert {
   matchId: string;
   /** Who is emailed: the lost plate's owner or the finder. Both may opt in. */
   role: 'owner' | 'finder';
+  kind: 'exact' | 'near';
   /** The recipient's own plate, then the other side's (they differ on a near match). */
   plateDisplay: string;
   otherPlateDisplay: string;
@@ -26,12 +27,13 @@ export interface MatchAlert {
 }
 
 /** One row per person to email about new matches: owners and finders who opted in. */
-export async function matchAlerts(matchIds: string[]): Promise<MatchAlert[]> {
+export async function matchAlerts(matchIds: string[], force = false): Promise<MatchAlert[]> {
   if (matchIds.length === 0) return [];
   const { data, error } = await rpc<
     {
       match_id: string;
       role: 'owner' | 'finder';
+      match_kind: 'exact' | 'near';
       plate_display: string;
       other_plate_display: string;
       found_created_at: string | Date;
@@ -44,11 +46,12 @@ export async function matchAlerts(matchIds: string[]): Promise<MatchAlert[]> {
       other_district: string | null;
       other_police_note: string | null;
     }[]
-  >('match_alerts', { p_match_ids: matchIds });
+  >('match_alerts', { p_match_ids: matchIds, p_force: force });
   if (error) throw toDbError('match_alerts', error);
   return data.map((r) => ({
     matchId: r.match_id,
     role: r.role,
+    kind: r.match_kind,
     plateDisplay: r.plate_display,
     otherPlateDisplay: r.other_plate_display,
     foundAt: new Date(r.found_created_at).toISOString(),
@@ -63,6 +66,18 @@ export async function matchAlerts(matchIds: string[]): Promise<MatchAlert[]> {
       policeNote: r.other_police_note,
     },
   }));
+}
+
+/**
+ * The "Match Now!" button: 'ok' when this match may be emailed again now (and records the
+ * time), 'wait' within 5 seconds of the last press, 'missing' if the match or a post is gone.
+ */
+export async function claimMatchNotify(matchId: string): Promise<'ok' | 'wait' | 'missing'> {
+  const { data, error } = await rpc<'ok' | 'wait' | 'missing'>('claim_match_notify', {
+    p_match_id: matchId,
+  });
+  if (error) throw toDbError('claim_match_notify', error);
+  return data;
 }
 
 export async function markMatchesNotified(matchIds: string[]): Promise<number> {

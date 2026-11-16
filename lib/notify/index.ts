@@ -77,9 +77,22 @@ export async function subscribeOwner(email: string): Promise<void> {
 /** Tell owners and finders who opted in about new matches; marks those matches notified. */
 export async function notifyNewMatches(matches: RecordedMatch[]): Promise<void> {
   if (matches.length === 0 || !alertsConfigured()) return;
-  const alerts = await matchAlerts(matches.map((m) => m.matchId));
+  await sendAlerts(await matchAlerts(matches.map((m) => m.matchId)));
+}
+
+/**
+ * "Match Now!": email both sides of one match again, even if it was emailed before. Returns
+ * how many people it went to (those who gave an email; SNS delivers to confirmed ones).
+ */
+export async function notifyMatchNow(matchId: string): Promise<number> {
+  if (!alertsConfigured()) return 0;
+  const alerts = await matchAlerts([matchId], true);
+  await sendAlerts(alerts);
+  return alerts.length;
+}
+
+async function sendAlerts(alerts: MatchAlert[]): Promise<void> {
   if (alerts.length === 0) return;
-  const kinds = new Map(matches.map((m) => [m.matchId, m.kind]));
   const appOrigin = serverEnv().APP_ORIGIN ?? '';
   await invoke({
     action: 'notify',
@@ -90,7 +103,7 @@ export async function notifyNewMatches(matches: RecordedMatch[]): Promise<void> 
       role: a.role,
       plate: a.plateDisplay,
       otherPlate: a.otherPlateDisplay,
-      kind: kinds.get(a.matchId) ?? 'near',
+      kind: a.kind,
       foundAt: a.foundAt,
       handover: a.handover,
       locale: a.locale,

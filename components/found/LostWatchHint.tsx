@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
-import { Spinner } from '@/components/ui/Button';
+import { Button, Spinner } from '@/components/ui/Button';
 import { postJson } from '@/lib/client/api';
 import { draftToInput, type PlateDraft } from '@/lib/plate/draft';
 import { plateInputSchema } from '@/lib/validation/schemas';
@@ -17,7 +17,14 @@ const DEBOUNCE_MS = 600;
  * someone is looking for it (D-064). Only yes/near/no comes back; the match itself is recorded
  * when the plate is posted.
  */
-export function LostWatchHint({ draft }: { draft: PlateDraft }) {
+export function LostWatchHint({
+  draft,
+  onMatchNow,
+}: {
+  draft: PlateDraft;
+  /** "Match Now!": go on to send the post, which records the match and emails both sides. */
+  onMatchNow?: () => void;
+}) {
   const t = useTranslations('found.lostCheck');
   // The answer for the plate it was asked about; anything else means "still checking".
   const [answer, setAnswer] = useState<{ key: string; match: Match | 'failed' } | null>(null);
@@ -56,6 +63,11 @@ export function LostWatchHint({ draft }: { draft: PlateDraft }) {
     return (
       <Alert tone="highlight" title={t('exactTitle')} live>
         <p>{t('exactBody')}</p>
+        {onMatchNow && (
+          <Button block className="mt-3" onClick={onMatchNow}>
+            {t('matchNow')}
+          </Button>
+        )}
       </Alert>
     );
   }
@@ -63,6 +75,11 @@ export function LostWatchHint({ draft }: { draft: PlateDraft }) {
     return (
       <Alert tone="highlight" title={t('nearTitle')} live>
         <p>{t('nearBody')}</p>
+        {onMatchNow && (
+          <Button block className="mt-3" onClick={onMatchNow}>
+            {t('matchNow')}
+          </Button>
+        )}
       </Alert>
     );
   }

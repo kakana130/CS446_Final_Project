@@ -57,6 +57,8 @@ export function postForm<T>(
 
 const API_CODES = new Set([
   'turnstile_failed',
+  'too_soon',
+  'alerts_off',
   'rate_limited',
   'dormant',
   'consent_outdated',

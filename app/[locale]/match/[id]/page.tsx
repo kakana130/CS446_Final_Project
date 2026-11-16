@@ -4,10 +4,12 @@ import { getFormatter, getTranslations } from 'next-intl/server';
 import { PlateView } from '@/components/plate/PlateView';
 import { ReportButton } from '@/components/report/ReportButton';
 import { MatchContact } from '@/components/reveal/MatchContact';
+import { MatchNowButton } from '@/components/reveal/MatchNowButton';
 import { PageShell } from '@/components/site/PageShell';
 import { Alert } from '@/components/ui/Alert';
 import { getMatchCounts, getMatchView } from '@/lib/db/matches';
 import { signCropUrls } from '@/lib/db/storage';
+import { alertsConfigured } from '@/lib/notify';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -79,6 +81,8 @@ export default async function MatchPage({ params }: PageProps<'/[locale]/match/[
             </div>
           )}
         </section>
+
+        {alertsConfigured() && <MatchNowButton matchId={view.matchId} />}
 
         <MatchContact
           matchId={view.matchId}
