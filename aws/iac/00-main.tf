@@ -46,24 +46,37 @@ data "aws_vpc" "main" {
   tags = { Name = "plate2home-vpc" }
 }
 
+# The VPC wizard names subnets plate2home-subnet-<public1|public2|private1|private2>-<AZ>.
 data "aws_subnet" "public1" {
   vpc_id = data.aws_vpc.main.id
-  tags   = { Name = "plate2home-subnet-public1-us-east-1a" }
+  filter {
+    name   = "tag:Name"
+    values = ["plate2home-subnet-public1-*"]
+  }
 }
 
 data "aws_subnet" "public2" {
   vpc_id = data.aws_vpc.main.id
-  tags   = { Name = "plate2home-subnet-public2-us-east-1b" }
+  filter {
+    name   = "tag:Name"
+    values = ["plate2home-subnet-public2-*"]
+  }
 }
 
 data "aws_subnet" "private1" {
   vpc_id = data.aws_vpc.main.id
-  tags   = { Name = "plate2home-subnet-private1-us-east-1a" }
+  filter {
+    name   = "tag:Name"
+    values = ["plate2home-subnet-private1-*"]
+  }
 }
 
 data "aws_subnet" "private2" {
   vpc_id = data.aws_vpc.main.id
-  tags   = { Name = "plate2home-subnet-private2-us-east-1b" }
+  filter {
+    name   = "tag:Name"
+    values = ["plate2home-subnet-private2-*"]
+  }
 }
 
 data "aws_security_group" "alb" {

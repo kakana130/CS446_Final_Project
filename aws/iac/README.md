@@ -31,3 +31,19 @@ resources; the build instance, its AMI and the VPC are removed by hand.
 The daily job uses an EventBridge **rule** (UTC cron, `0 20 * * ? *` = 03:00 in Bangkok)
 rather than EventBridge Scheduler, because a rule needs no IAM role. The full Thai
 walkthrough is `Plate2Home-AWS-Deploy-TH-OpenTofu.md`, next to the project folder.
+
+## Quick version (`quick/`)
+
+The same files, run for you by three scripts, for the "just follow it" guide
+(`Plate2Home-AWS-Deploy-TH-Quick.md`). After the VPC, security groups and the build instance
+exist:
+
+1. `bash ~/CS446_Final_Project/aws/iac/quick/1-create.sh` installs OpenTofu, makes a random
+   RDS password, turns on auto-assign public IPv4 for both public subnets, applies `00`–`07`,
+   then prints one block to paste on the build instance (clone, `.env`, `setup.sh`).
+2. `bash ~/CS446_Final_Project/aws/iac/quick/2-finish.sh` images the build instance, applies
+   `08-asg.tf`, waits for two healthy targets and stops the build instance.
+3. `bash ~/CS446_Final_Project/aws/iac/quick/3-destroy.sh` runs `tofu destroy`, terminates the
+   build instance and deletes its images and snapshots. The VPC is deleted in the console.
+
+Each script can be run again; it only creates what is missing.
