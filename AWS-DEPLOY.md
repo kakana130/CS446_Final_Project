@@ -67,6 +67,11 @@ SNS emails the owner a link to the match.
 - The EC2 build instance `git clone`s this repository.
 - Write down every value marked 📝. You will put them in `.env` in step 9.
 
+**With OpenTofu instead (the week 12 approach):** do steps 1–2 here (without the DB subnet
+group), then create RDS, S3, SNS, both Lambdas, EventBridge, the load balancer and the Auto
+Scaling group from [`aws/iac/`](aws/iac/README.md) in CloudShell, one file at a time. Steps 8–9
+and the AMI stay manual. `tofu destroy` removes everything it made.
+
 ---
 
 ## 1. VPC — the project's own network 🟣

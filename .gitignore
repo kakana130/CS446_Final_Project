@@ -62,3 +62,11 @@ __pycache__/
 
 # Amazon RDS certificate bundle (downloaded by aws/ec2/setup.sh)
 rds-global-bundle.pem
+
+# OpenTofu working files (state and tfvars hold the RDS password; they stay in CloudShell)
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+/aws/iac/build/
