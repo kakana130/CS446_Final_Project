@@ -1,10 +1,11 @@
 # Step: the values for the app's .env on the EC2 build instance. Creates nothing.
-#   tofu output -raw env_commands
-# prints commands to paste on the instance, in /opt/plate2home, after the first setup.sh run.
+#   tofu output -raw env_oneliner
+# prints ONE line to paste on the instance after the first setup.sh run. It writes the values
+# into /opt/plate2home/.env. (A one-liner, because pasting many lines into the browser terminal
+# of EC2 Instance Connect can mangle them. `tofu output -raw env_commands` shows them readable.)
 
-output "env_commands" {
-  sensitive = true # holds the database password and the secrets
-  value     = <<-EOT
+locals {
+  env_commands = <<-EOT
     cd /opt/plate2home
     setenv() { if grep -q "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else echo "$1=$2" >> .env; fi; }
     setenv APP_ORIGIN 'http://${aws_lb.web.dns_name}'
@@ -18,4 +19,14 @@ output "env_commands" {
     setenv IP_HASH_SECRET '${random_password.ip_hash_secret.result}'
     grep -E '^(APP_ORIGIN|S3_BUCKET|NOTIFY_LAMBDA_NAME)=' .env
   EOT
+}
+
+output "env_commands" {
+  sensitive = true # holds the database password and the secrets
+  value     = local.env_commands
+}
+
+output "env_oneliner" {
+  sensitive = true
+  value     = "echo '${base64encode(local.env_commands)}' | base64 -d > /tmp/p2h-env.sh && bash /tmp/p2h-env.sh; rm -f /tmp/p2h-env.sh"
 }

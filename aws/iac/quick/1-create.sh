@@ -59,18 +59,27 @@ done
 tofu apply -auto-approve -input=false -var "repo_dir=$REPO"
 
 CLONE_URL="$(git -C "$REPO" remote get-url origin)"
-echo
-echo "=================== COPY FROM THE NEXT LINE ==================="
-cat <<EOF
+# Everything the build instance has to do, as one script. It is handed over as a single line
+# (base64), because pasting many lines into the browser terminal of EC2 Instance Connect can
+# mangle them. Safe to run again on the instance.
+SCRIPT="$(
+  cat <<EOF
+set -e
 sudo dnf install -y git
 sudo mkdir -p /opt/plate2home
 sudo chown ec2-user /opt/plate2home
-git clone $CLONE_URL /opt/plate2home
-cp /opt/plate2home/.env.example /opt/plate2home/.env
+[ -d /opt/plate2home/.git ] || git clone $CLONE_URL /opt/plate2home
+cd /opt/plate2home
+[ -f .env ] || cp .env.example .env
 EOF
-tofu output -raw env_commands
-echo "bash aws/ec2/setup.sh"
-echo "=================== TO THE LINE ABOVE ==================="
+  tofu output -raw env_commands
+  echo "bash aws/ec2/setup.sh"
+)"
+B64="$(printf '%s\n' "$SCRIPT" | base64 -w0)"
+echo
+echo "=========== COPY THE NEXT LINE (one long line) ==========="
+echo "echo '$B64' | base64 -d > /tmp/p2h.sh && bash /tmp/p2h.sh; rm -f /tmp/p2h.sh"
+echo "=========== TO HERE ==========="
 echo
 echo "Website address: $(tofu output -raw site_url)"
 echo "PART 1 DONE"
