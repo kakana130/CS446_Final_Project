@@ -46,8 +46,11 @@ echo ">> Creating RDS, S3, SNS, Lambda x2, EventBridge and the load balancer (ab
 tofu init -input=false >/dev/null
 # Older 02-s3.tf used aws_s3_bucket, which Learner Lab can't read back. Forget it here (the
 # bucket itself stays and is adopted by the new 02-s3.tf).
+STATE="$(tofu state list 2>/dev/null || true)"
 for R in aws_s3_bucket_public_access_block.crops aws_s3_bucket.crops; do
-  if tofu state list 2>/dev/null | grep -qx "$R"; then tofu state rm "$R" >/dev/null; fi
+  case $'\n'"$STATE"$'\n' in
+    *$'\n'"$R"$'\n'*) tofu state rm "$R" >/dev/null && echo ">> Removed old $R from the state" ;;
+  esac
 done
 tofu apply -auto-approve -input=false -var "repo_dir=$REPO"
 
