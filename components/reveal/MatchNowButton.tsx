@@ -10,8 +10,9 @@ import { postJson } from '@/lib/client/api';
 const COOLDOWN_SECONDS = 5;
 
 /**
- * "Match Now!": Amazon SNS emails both sides of this match again (owner and finder, each with
- * the other's contact), e.g. after one of them confirmed their email. The button rests for 5
+ * "Email both sides again" on the match page (already matched, so not "Match Now!"): Amazon SNS
+ * emails both sides of this match again (owner and finder, each with the other's contact),
+ * e.g. after one of them confirmed their email. The button rests for 5
  * seconds after each press; the server enforces the same per match.
  */
 export function MatchNowButton({ matchId }: { matchId: string }) {

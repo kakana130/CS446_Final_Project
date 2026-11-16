@@ -296,9 +296,9 @@
     "manyOwnersBody": "Return it only to someone who shows you the vehicle registration book, with the plate number matching and the name matching their ID card. If you are not sure, don’t hand it over yet, or take it to a police station.",
     "manyFindersTitle": "{count, plural, one {# found post for this number} other {# found posts for this number}}",
     "manyFindersBody": "They may be the front and rear plates, or the same plate posted twice. Look at each photo and contact every finder.",
-    "matchNow": "Match Now! Email both sides",
+    "matchNow": "Email both sides again",
     "matchNowWait": "Wait {seconds} s",
-    "matchNowHint": "Amazon SNS emails the owner and the finder, each with the other's contact details (only people who gave an email and clicked Confirm subscription).",
+    "matchNowHint": "Matched: the email went out when the match was made. Press this to have Amazon SNS send it again, e.g. after someone just clicked Confirm subscription (only people who gave an email and confirmed, each with the other's contact details).",
     "matchNowSent": "Email sent ({count, plural, one {# person} other {# people}})",
     "matchNowNone": "Neither side gave an email, so no email could be sent. Use the contact details below."
   },
