@@ -2,6 +2,8 @@ import { ApiError, apiRoute, assertSiteActive, enforceRateLimit, readJson } from
 import { currentUser } from '@/lib/auth/session';
 import { CONSENT_VERSION, UPLOAD_TOKEN_TTL_SECONDS } from '@/lib/config/app';
 import { createFoundBatch } from '@/lib/db/posting';
+import { logError } from '@/lib/log';
+import { alertsConfigured, subscribeOwner } from '@/lib/notify';
 import { randomToken, sha256Hex } from '@/lib/security/tokens';
 import { verifyTurnstile } from '@/lib/security/turnstile';
 import { foundBatchSchema } from '@/lib/validation/schemas';
@@ -21,6 +23,9 @@ export const POST = apiRoute('api/found/batch', async (request, { ip, ipHash }) 
     throw new ApiError('turnstile_failed', 403);
   }
 
+  // Alerts by email through Amazon SNS when the owner reports this plate lost later.
+  const alertEmail = body.notifyEmail && alertsConfigured() ? body.contact.email : null;
+
   const deviceToken = randomToken();
   const uploadToken = randomToken();
   const expiresAt = new Date(Date.now() + UPLOAD_TOKEN_TTL_SECONDS * 1000);
@@ -36,10 +41,25 @@ export const POST = apiRoute('api/found/batch', async (request, { ip, ipHash }) 
     policeStationNote: body.handover === 'police_station' ? body.policeStationNote : null,
     district: body.district || null,
     note: body.note || null,
+    notifyEmail: alertEmail !== null,
   });
 
+  if (alertEmail) {
+    try {
+      await subscribeOwner(alertEmail);
+    } catch (err) {
+      logError('api/found/batch:subscribe', err);
+    }
+  }
+
   return Response.json(
-    { batchId, uploadToken, deviceToken, uploadExpiresAt: expiresAt.toISOString() },
+    {
+      batchId,
+      uploadToken,
+      deviceToken,
+      uploadExpiresAt: expiresAt.toISOString(),
+      alertsPending: alertEmail !== null,
+    },
     { status: 201, headers: { 'cache-control': 'no-store' } },
   );
 });

@@ -308,8 +308,9 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
       {
         matchId,
         ownerKey,
+        role: 'owner',
         plate: expect.any(String),
-        foundPlate: expect.any(String),
+        otherPlate: expect.any(String),
         kind: 'exact',
         foundAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
         handover: 'police_station',
@@ -582,5 +583,79 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
     expect(res.status).toBe(200);
     const left = (await res.json()).posts.map((p: { postId: string }) => p.postId);
     expect(left).not.toContain(foundPostId);
+  });
+
+  // Email alerts both ways: a finder who opts in hears when the owner reports later.
+  const plate2 = { ...plate, number: String(1000 + ((Number(number) - 1000 + 4500) % 8999)) };
+  const finderEmail = `itest.finder.${number}@example.com`;
+  let finderKey = '';
+  let batch2 = '';
+  let upload2 = '';
+
+  it('lets a finder opt in to email alerts and asks SNS to confirm', async () => {
+    const before = lambdaEvents.length;
+    const res = await routes.batch.POST(
+      jsonRequest('/api/found/batch', {
+        ...base,
+        contact: { phone: '0812345679', email: finderEmail },
+        notifyEmail: true,
+        handover: 'with_finder',
+      }),
+      noParams,
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.alertsPending).toBe(true);
+    batch2 = body.batchId;
+    upload2 = body.uploadToken;
+    createdBatches.push(batch2);
+    const subscribe = lambdaEvents.slice(before).find((e) => e.action === 'subscribe');
+    expect(subscribe).toMatchObject({ action: 'subscribe', email: finderEmail });
+    finderKey = subscribe!.ownerKey as string;
+    expect(finderKey).toMatch(/^[0-9a-f]{64}$/);
+
+    const form = new FormData();
+    form.set('data', JSON.stringify({ plate: plate2 }));
+    form.set('crop', await crop(), 'crop.png');
+    const up = await routes.plate.POST(
+      new Request(`${ORIGIN}/api/found/batch/${batch2}/plate`, {
+        method: 'POST',
+        headers: { origin: ORIGIN, 'x-real-ip': IP, 'x-upload-token': upload2 },
+        body: form,
+      }),
+      { params: Promise.resolve({ id: batch2 }) },
+    );
+    expect(up.status).toBe(201);
+    expect((await up.json()).matches).toHaveLength(0);
+  });
+
+  it('alerts the opted-in finder when the owner reports the plate lost later', async () => {
+    const before = lambdaEvents.length;
+    const res = await routes.lost.POST(
+      jsonRequest('/api/lost', { ...base, plate: plate2, contact: { lineId: 'itest.owner2' } }),
+      noParams,
+    );
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    createdBatches.push(body.batchId);
+    expect(body.matches).toHaveLength(1);
+    expect(body.alertsPending).toBe(false);
+
+    const notify = lambdaEvents.slice(before).filter((e) => e.action === 'notify');
+    expect(notify).toHaveLength(1);
+    expect(notify[0]!.alerts).toEqual([
+      {
+        matchId: body.matches[0].matchId,
+        ownerKey: finderKey,
+        role: 'finder',
+        plate: expect.any(String),
+        otherPlate: expect.any(String),
+        kind: 'exact',
+        foundAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+        handover: 'with_finder',
+        locale: 'th',
+      },
+    ]);
+    expect(JSON.stringify(notify[0])).not.toContain(finderEmail);
   });
 });

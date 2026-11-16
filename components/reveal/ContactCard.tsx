@@ -1,8 +1,9 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { buttonClass } from '@/components/ui/Button';
+import { brand } from '@/lib/config/brand';
 import { copyText } from '@/lib/client/uid';
 
 /** LINE add-friend link: personal IDs use `~id`, official accounts start with `@`. */
@@ -11,6 +12,22 @@ export function lineUrl(id: string): string {
     ? `https://line.me/R/ti/p/${encodeURIComponent(id)}`
     : `https://line.me/ti/p/~${encodeURIComponent(id)}`;
 }
+
+/**
+ * Gmail's web compose page. `mailto:` links do nothing on computers without a mail app set up
+ * (common on Windows, where people use Gmail in the browser), so the main button opens Gmail
+ * and a smaller link keeps `mailto:` for phones and mail apps.
+ */
+export function gmailUrl(to: string, subject: string, body: string): string {
+  const p = new URLSearchParams({ view: 'cm', fs: '1', to, su: subject, body });
+  return `https://mail.google.com/mail/?${p.toString()}`;
+}
+
+export function mailtoUrl(to: string, subject: string, body: string): string {
+  return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+const noSubscribe = () => () => {};
 
 function CopyButton({ value }: { value: string }) {
   const t = useTranslations('reveal');
@@ -53,6 +70,15 @@ export function ContactCard({
   reminder: string;
 }) {
   const t = useTranslations('reveal');
+  // The page the contact was revealed on (the match), read on the client only.
+  const link = useSyncExternalStore(
+    noSubscribe,
+    () => window.location.href,
+    () => '',
+  );
+  const name = brand.name[useLocale() as 'th' | 'en'];
+  const subject = t('emailSubject', { brand: name });
+  const body = t('emailBody', { link, brand: name });
   return (
     <section
       aria-live="polite"
@@ -94,8 +120,20 @@ export function ContactCard({
             <dt className="font-semibold">{t('email')}</dt>
             <dd className="flex flex-wrap items-center gap-2">
               <span className="break-all">{email}</span>
-              <a href={`mailto:${email}`} className={buttonClass('secondary')}>
+              <CopyButton value={email} />
+              <a
+                href={gmailUrl(email, subject, body)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonClass('secondary')}
+              >
                 {t('sendEmail')}
+              </a>
+              <a
+                href={mailtoUrl(email, subject, body)}
+                className="min-h-11 px-2 text-sm font-semibold text-accent-ink underline decoration-2 underline-offset-4"
+              >
+                {t('sendEmailApp')}
               </a>
             </dd>
           </div>

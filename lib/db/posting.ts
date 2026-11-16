@@ -69,6 +69,7 @@ export interface CreateFoundBatchInput {
   policeStationNote: string | null;
   district: string | null;
   note: string | null;
+  notifyEmail: boolean;
 }
 
 export async function createFoundBatch(input: CreateFoundBatchInput): Promise<string> {
@@ -84,6 +85,7 @@ export async function createFoundBatch(input: CreateFoundBatchInput): Promise<st
     p_district: input.district,
     ...contactArgs(input.contact),
     p_note: input.note,
+    p_notify_email: input.notifyEmail,
   });
   if (error) throw toDbError('create_found_batch', error);
   return data as string;

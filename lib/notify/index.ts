@@ -9,10 +9,10 @@ import { logError } from '@/lib/log';
 /**
  * Match alerts (AWS port): the app never talks to SNS itself. It invokes the
  * `plate2home-notify` Lambda function asynchronously (lambda/notify/index.mjs), which
- *  - subscribe:  subscribes the owner's email to the SNS topic (SNS sends a confirmation
+ *  - subscribe:  subscribes an owner's or finder's email to the SNS topic (SNS sends a confirmation
  *                email first: double opt-in), filtered on a keyed hash of that email;
  *  - notify:     publishes one message per new match with that hash as a message attribute,
- *                so only that owner's subscription receives it;
+ *                so only that person's subscription receives it;
  *  - prune:      unsubscribes every confirmed email whose hash is no longer in the keep list.
  * Emails go to Lambda only for `subscribe`; alerts and prunes carry hashes.
  */
@@ -39,13 +39,14 @@ type NotifyEvent =
       alerts: {
         matchId: string;
         ownerKey: string;
-        /** The owner's lost plate, and the plate as the finder entered it. */
+        /** Who this email is for; `plate` is theirs, `otherPlate` the other side's. */
+        role: 'owner' | 'finder';
         plate: string;
-        foundPlate: string;
+        otherPlate: string;
         kind: RecordedMatch['kind'];
         foundAt: string;
         handover: 'with_finder' | 'police_station' | null;
-        /** The site language the owner used: links in the email open that language. */
+        /** The site language the recipient used: links in the email open that language. */
         locale: 'th' | 'en';
       }[];
     }
@@ -64,13 +65,13 @@ async function invoke(event: NotifyEvent): Promise<void> {
   if (res.StatusCode !== 202) throw new Error(`lambda_invoke_${res.StatusCode}`);
 }
 
-/** Ask SNS to email the owner a confirmation link for alerts on their lost plate. */
+/** Ask SNS to email a confirmation link for match alerts (owner or finder). */
 export async function subscribeOwner(email: string): Promise<void> {
   if (!alertsConfigured()) return;
   await invoke({ action: 'subscribe', email, ownerKey: ownerKey(email) });
 }
 
-/** Tell lost-plate owners who opted in about new matches; marks those matches notified. */
+/** Tell owners and finders who opted in about new matches; marks those matches notified. */
 export async function notifyNewMatches(matches: RecordedMatch[]): Promise<void> {
   if (matches.length === 0 || !alertsConfigured()) return;
   const alerts = await matchAlerts(matches.map((m) => m.matchId));
@@ -83,18 +84,19 @@ export async function notifyNewMatches(matches: RecordedMatch[]): Promise<void> 
     alerts: alerts.map((a) => ({
       matchId: a.matchId,
       ownerKey: ownerKey(a.email),
+      role: a.role,
       plate: a.plateDisplay,
-      foundPlate: a.foundPlateDisplay,
+      otherPlate: a.otherPlateDisplay,
       kind: kinds.get(a.matchId) ?? 'near',
       foundAt: a.foundAt,
       handover: a.handover,
       locale: a.locale,
     })),
   });
-  await markMatchesNotified(alerts.map((a) => a.matchId));
+  await markMatchesNotified([...new Set(alerts.map((a) => a.matchId))]);
 }
 
-/** Unsubscribe emails that no longer have an active lost watch with alerts on. */
+/** Unsubscribe emails that no longer have an active post with alerts on. */
 export async function pruneSubscriptions(): Promise<number> {
   if (!alertsConfigured()) return 0;
   const keep = [...new Set((await alertEmails()).map(ownerKey))];

@@ -4,10 +4,11 @@ import { rpc } from './server';
 
 export interface MatchAlert {
   matchId: string;
-  lostPostId: string;
+  /** Who is emailed: the lost plate's owner or the finder. Both may opt in. */
+  role: 'owner' | 'finder';
+  /** The recipient's own plate, then the other side's (they differ on a near match). */
   plateDisplay: string;
-  /** The plate as the finder entered it (differs from the lost plate on a near match). */
-  foundPlateDisplay: string;
+  otherPlateDisplay: string;
   /** ISO timestamp of the found post. */
   foundAt: string;
   handover: 'with_finder' | 'police_station' | null;
@@ -15,15 +16,15 @@ export interface MatchAlert {
   email: string;
 }
 
-/** New matches whose lost-plate owner opted in to email alerts (both posts active). */
+/** One row per person to email about new matches: owners and finders who opted in. */
 export async function matchAlerts(matchIds: string[]): Promise<MatchAlert[]> {
   if (matchIds.length === 0) return [];
   const { data, error } = await rpc<
     {
       match_id: string;
-      lost_post_id: string;
+      role: 'owner' | 'finder';
       plate_display: string;
-      found_plate_display: string;
+      other_plate_display: string;
       found_created_at: string | Date;
       found_handover: 'with_finder' | 'police_station' | null;
       locale: 'th' | 'en';
@@ -33,9 +34,9 @@ export async function matchAlerts(matchIds: string[]): Promise<MatchAlert[]> {
   if (error) throw toDbError('match_alerts', error);
   return data.map((r) => ({
     matchId: r.match_id,
-    lostPostId: r.lost_post_id,
+    role: r.role,
     plateDisplay: r.plate_display,
-    foundPlateDisplay: r.found_plate_display,
+    otherPlateDisplay: r.other_plate_display,
     foundAt: new Date(r.found_created_at).toISOString(),
     handover: r.found_handover,
     locale: r.locale,
@@ -50,7 +51,7 @@ export async function markMatchesNotified(matchIds: string[]): Promise<number> {
   return data;
 }
 
-/** Emails that keep their SNS subscription (active lost watches with alerts on). */
+/** Emails that keep their SNS subscription (anyone with an active post and alerts on). */
 export async function alertEmails(): Promise<string[]> {
   const { data, error } = await rpc<string[]>('alert_emails');
   if (error) throw toDbError('alert_emails', error);

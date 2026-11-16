@@ -157,6 +157,8 @@ export const foundBatchSchema = z
     consentVersion: z.string().max(32),
     locale,
     handover: z.enum(['with_finder', 'police_station']),
+    /** Email me when the owner reports this plate lost; needs an email in `contact`. */
+    notifyEmail: z.boolean().default(false),
     policeStationNote: z.string().trim().max(120).default(''),
     district: z.string().trim().max(80).default(''),
     note: noteSchema,

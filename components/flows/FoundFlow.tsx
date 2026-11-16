@@ -19,7 +19,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Button, buttonClass, Spinner } from '@/components/ui/Button';
 import { Choice } from '@/components/ui/Choice';
 import { ConsentField } from '@/components/forms/ConsentField';
-import { Field, TextInput } from '@/components/ui/Field';
+import { Checkbox, Field, TextInput } from '@/components/ui/Field';
 import { Stepper } from '@/components/ui/Stepper';
 import { Link } from '@/i18n/navigation';
 import { CONSENT_VERSION, MAX_PLATES_PER_BATCH } from '@/lib/config/app';
@@ -28,6 +28,7 @@ import { ownPostsFor, ownPostsReady, useOwnPosts } from '@/lib/client/own-posts'
 import { samePlate } from '@/lib/plate/same';
 import { rememberDevicePost } from '@/lib/client/devices';
 import { ACCOUNTS_ENABLED } from '@/lib/client/session';
+import { brand } from '@/lib/config/brand';
 import { uid } from '@/lib/client/uid';
 import { cropToBlob, loadPhoto, type LoadedPhoto, type Rect } from '@/lib/client/image';
 import { findPlates, OCR_ENABLED, onOcrLoading, readPlate } from '@/lib/client/ocr';
@@ -42,6 +43,8 @@ import {
 } from '@/lib/validation/schemas';
 
 const STEPS = ['plates', 'details'] as const;
+/** Email alerts through Amazon SNS; on when the deployment sets NEXT_PUBLIC_FEATURE_ALERTS. */
+const ALERTS_ENABLED = process.env.NEXT_PUBLIC_FEATURE_ALERTS === 'true';
 
 interface Photo {
   id: string;
@@ -76,6 +79,8 @@ interface Batch {
   batchId: string;
   uploadToken: string;
   deviceToken: string;
+  /** An SNS confirmation email is on its way (the finder opted in to alerts). */
+  alertsPending?: boolean;
 }
 
 export function FoundFlow() {
@@ -83,6 +88,7 @@ export function FoundFlow() {
   const tc = useTranslations('common');
   const tMine = useTranslations('myPosts');
   const tOcr = useTranslations('ocr');
+  const tContact = useTranslations('contact');
   const errorText = useErrorText();
   const locale = useLocale() as 'th' | 'en';
   const [step, go] = useStep(STEPS);
@@ -94,6 +100,7 @@ export function FoundFlow() {
   const [district, setDistrict] = useState('');
   const [note, setNote] = useState('');
   const [contact, setContact] = useState<ContactDraft>(EMPTY_CONTACT);
+  const [notifyEmail, setNotifyEmail] = useState(false);
   const [consent, setConsent] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const turnstile = useRef<TurnstileHandle>(null);
@@ -291,6 +298,7 @@ export function FoundFlow() {
       consentVersion: CONSENT_VERSION,
       locale,
       handover,
+      notifyEmail: ALERTS_ENABLED && notifyEmail && contact.email.trim() !== '',
       policeStationNote: policeNote,
       district,
       note,
@@ -427,6 +435,13 @@ export function FoundFlow() {
           <Button block onClick={retryFailed}>
             {t('retryFailed')}
           </Button>
+        )}
+        {finished && batch.alertsPending && (
+          <Alert tone="info" title={t('doneAlertsTitle')}>
+            <p className="mt-1">
+              {t('doneAlerts', { email: contact.email.trim(), brand: brand.name[locale] })}
+            </p>
+          </Alert>
         )}
         {finished && (
           <>
@@ -709,6 +724,18 @@ export function FoundFlow() {
                 .map(([k, v]) => [k.slice('contact.'.length), v]),
             )}
           />
+
+          {ALERTS_ENABLED && contact.email.trim() && (
+            <Checkbox
+              label={tContact('notifyEmailFound')}
+              checked={notifyEmail}
+              onChange={setNotifyEmail}
+            >
+              <span className="block text-sm text-ink-muted">
+                {tContact('notifyEmailHint', { brand: brand.name[locale] })}
+              </span>
+            </Checkbox>
+          )}
 
           <ConsentField checked={consent} onChange={setConsent} error={errors.consent} />
 
