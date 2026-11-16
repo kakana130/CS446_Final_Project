@@ -9,7 +9,7 @@ find them by name and create the rest. They are applied one at a time, in AWS Cl
 | --------------------- | -------------------------------------------------------------- | ----------- |
 | `00-main.tf`          | Providers; looks up the VPC, subnets, security groups, LabRole | 0 to add    |
 | `01-rds.tf`           | DB subnet group, RDS PostgreSQL (`db_password` in tfvars)      | 2 to add    |
-| `02-s3.tf`            | Private photo bucket                                           | 2 to add    |
+| `02-s3.tf`            | Private photo bucket, made with the AWS CLI (see the file)     | 1 to add    |
 | `03-sns.tf`           | Alert topic, display name Plate2Home                           | 1 to add    |
 | `04-lambda-notify.tf` | `plate2home-notify`                                            | 1 to add    |
 | `05-alb.tf`           | Target group, ALB, HTTP listener                               | 3 to add    |
@@ -25,8 +25,12 @@ cp ~/CS446_Final_Project/aws/iac/00-main.tf . && tofu init && tofu apply -auto-a
 ```
 
 `terraform.tfvars` holds `db_password` (before `01-rds.tf`) and `ami_id` (before `08-asg.tf`).
-It and the state stay in CloudShell; never commit them. `tofu destroy` removes all 18
+It and the state stay in CloudShell; never commit them. `tofu destroy` removes all 17
 resources; the build instance, its AMI and the VPC are removed by hand.
+
+Learner Lab denies `s3:GetBucketObjectLockConfiguration`, which the provider's `aws_s3_bucket`
+reads on every refresh, so `02-s3.tf` creates the bucket with the AWS CLI from a
+`terraform_data` resource (and deletes it on destroy).
 
 The daily job uses an EventBridge **rule** (UTC cron, `0 20 * * ? *` = 03:00 in Bangkok)
 rather than EventBridge Scheduler, because a rule needs no IAM role. The full Thai

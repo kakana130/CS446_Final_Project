@@ -23,7 +23,7 @@ if ! command -v tofu >/dev/null 2>&1; then
   rm -f /tmp/tofu.zip
   grep -q '.local/bin' "$HOME/.bashrc" || echo 'export PATH=$HOME/.local/bin:$PATH' >>"$HOME/.bashrc"
 fi
-tofu version | head -1
+tofu version | sed -n 1p
 
 mkdir -p "$WORK"
 cd "$WORK"
@@ -44,6 +44,11 @@ done
 
 echo ">> Creating RDS, S3, SNS, Lambda x2, EventBridge and the load balancer (about 10 minutes)"
 tofu init -input=false >/dev/null
+# Older 02-s3.tf used aws_s3_bucket, which Learner Lab can't read back. Forget it here (the
+# bucket itself stays and is adopted by the new 02-s3.tf).
+for R in aws_s3_bucket_public_access_block.crops aws_s3_bucket.crops; do
+  if tofu state list 2>/dev/null | grep -qx "$R"; then tofu state rm "$R" >/dev/null; fi
+done
 tofu apply -auto-approve -input=false -var "repo_dir=$REPO"
 
 CLONE_URL="$(git -C "$REPO" remote get-url origin)"
