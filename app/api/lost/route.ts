@@ -42,7 +42,9 @@ export const POST = apiRoute('api/lost', async (request, { ip, ipHash }) => {
   }
 
   // Alerts by email through Amazon SNS. SNS emails a confirmation link first (double opt-in).
-  const alertEmail = body.notifyEmail && alertsConfigured() ? body.contact.email : null;
+  // Anyone who gives an email gets match alerts by email (Amazon SNS sends a confirmation
+  // the first time an address is used).
+  const alertEmail = alertsConfigured() ? body.contact.email : null;
 
   const deviceToken = randomToken();
   const { batchId, postId } = await createLostWatch({

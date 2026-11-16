@@ -19,7 +19,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Button, buttonClass, Spinner } from '@/components/ui/Button';
 import { Choice } from '@/components/ui/Choice';
 import { ConsentField } from '@/components/forms/ConsentField';
-import { Checkbox, Field, TextInput } from '@/components/ui/Field';
+import { Field, TextInput } from '@/components/ui/Field';
 import { Stepper } from '@/components/ui/Stepper';
 import { Link } from '@/i18n/navigation';
 import { CONSENT_VERSION, MAX_PLATES_PER_BATCH } from '@/lib/config/app';
@@ -79,7 +79,7 @@ interface Batch {
   batchId: string;
   uploadToken: string;
   deviceToken: string;
-  /** An SNS confirmation email is on its way (the finder opted in to alerts). */
+  /** Match alerts by email are on (the finder gave an email). */
   alertsPending?: boolean;
 }
 
@@ -100,7 +100,6 @@ export function FoundFlow() {
   const [district, setDistrict] = useState('');
   const [note, setNote] = useState('');
   const [contact, setContact] = useState<ContactDraft>(EMPTY_CONTACT);
-  const [notifyEmail, setNotifyEmail] = useState(false);
   const [consent, setConsent] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const turnstile = useRef<TurnstileHandle>(null);
@@ -298,7 +297,6 @@ export function FoundFlow() {
       consentVersion: CONSENT_VERSION,
       locale,
       handover,
-      notifyEmail: ALERTS_ENABLED && notifyEmail && contact.email.trim() !== '',
       policeStationNote: policeNote,
       district,
       note,
@@ -726,15 +724,9 @@ export function FoundFlow() {
           />
 
           {ALERTS_ENABLED && contact.email.trim() && (
-            <Checkbox
-              label={tContact('notifyEmailFound')}
-              checked={notifyEmail}
-              onChange={setNotifyEmail}
-            >
-              <span className="block text-sm text-ink-muted">
-                {tContact('notifyEmailHint', { brand: brand.name[locale] })}
-              </span>
-            </Checkbox>
+            <Alert tone="info" title={tContact('autoAlertTitle')}>
+              <p className="mt-1 text-sm">{tContact('autoAlert', { brand: brand.name[locale] })}</p>
+            </Alert>
           )}
 
           <ConsentField checked={consent} onChange={setConsent} error={errors.consent} />

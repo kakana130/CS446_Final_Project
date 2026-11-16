@@ -154,11 +154,10 @@
     "phone": "Phone number",
     "email": "Email",
     "showEmail": "Show this email too",
-    "notifyEmail": "Email me when someone finds this plate",
-    "notifyEmailHint": "{brand} will first send an email titled \"AWS Notification - Subscription Confirmation\" (a standard Amazon SNS email). Click Confirm subscription in it to turn alerts on.",
-    "notifyEmailFound": "Email me when the owner reports this plate lost",
     "introLost": "Only the person who found your plate sees this, and only once there is a match. Add at least one.",
-    "introFound": "Only the plate's owner sees this, and only once there is a match. Add at least one."
+    "introFound": "Only the plate's owner sees this, and only once there is a match. Add at least one.",
+    "autoAlertTitle": "Automatic email alerts",
+    "autoAlert": "When there is a match, {brand} emails you automatically through Amazon SNS, with the other side's contact details. The first time you use this address you'll get an email titled \"AWS Notification - Subscription Confirmation\": click Confirm subscription once."
   },
   "lost": {
     "title": "I lost a plate",
@@ -186,8 +185,8 @@
     "doneManage": "Check matches and manage the post under “My posts” on this device, or on any device if you sign in with Google.",
     "doneManageDevice": "Check matches and manage the post under “My posts” on this device.",
     "doneMatches": "Someone may have found your plate",
-    "doneAlertsTitle": "One more step: confirm your email to turn alerts on",
-    "doneAlerts": "Open the email from {brand} (no-reply@sns.amazonaws.com) titled \"AWS Notification - Subscription Confirmation\", sent to {email}, and click Confirm subscription. If you can't find it, check your spam folder.",
+    "doneAlertsTitle": "Email alerts are on",
+    "doneAlerts": "When there is a match, we email {email} automatically. If this is the first time you use this address, open the email from {brand} titled \"AWS Notification - Subscription Confirmation\" and click Confirm subscription once (check your spam folder too).",
     "viewMatch": "View details"
   },
   "found": {
@@ -226,8 +225,8 @@
     "plateFailed": "Not sent",
     "retryFailed": "Retry the plates that failed",
     "doneTitle": "Thank you for helping!",
-    "doneAlertsTitle": "One more step: confirm your email to turn alerts on",
-    "doneAlerts": "Open the email from {brand} (no-reply@sns.amazonaws.com) titled \"AWS Notification - Subscription Confirmation\", sent to {email}, and click Confirm subscription. If you can't find it, check your spam folder.",
+    "doneAlertsTitle": "Email alerts are on",
+    "doneAlerts": "When there is a match, we email {email} automatically. If this is the first time you use this address, open the email from {brand} titled \"AWS Notification - Subscription Confirmation\" and click Confirm subscription once (check your spam folder too).",
     "doneBody": "We'll match these plates with owners who reported them lost, and keep matching as new reports come in.",
     "ownerLooking": "The plate's owner is looking for it!",
     "ownerLookingBody": "This plate matches one its owner reported lost. Open it to contact the owner.",
@@ -309,10 +308,6 @@
     "email": "Email",
     "openLine": "Open in LINE",
     "call": "Call",
-    "sendEmail": "Send email",
-    "sendEmailApp": "Mail app",
-    "emailSubject": "{brand}: about the matched licence plate",
-    "emailBody": "Hello, I am contacting you through {brand} about the licence plate it matched for us. Match details: {link}",
     "copy": "Copy",
     "copied": "Copied",
     "district": "District where it was found",

@@ -14,6 +14,15 @@ export interface MatchAlert {
   handover: 'with_finder' | 'police_station' | null;
   locale: 'th' | 'en';
   email: string;
+  /** The other side's contact, as the reveal flow shows it (email only if they show it). */
+  other: {
+    lineId: string | null;
+    phone: string | null;
+    email: string | null;
+    /** For owners: where the finder is (district) and the police station, if handed in. */
+    district: string | null;
+    policeNote: string | null;
+  };
 }
 
 /** One row per person to email about new matches: owners and finders who opted in. */
@@ -29,6 +38,11 @@ export async function matchAlerts(matchIds: string[]): Promise<MatchAlert[]> {
       found_handover: 'with_finder' | 'police_station' | null;
       locale: 'th' | 'en';
       email: string;
+      other_line_id: string | null;
+      other_phone: string | null;
+      other_email: string | null;
+      other_district: string | null;
+      other_police_note: string | null;
     }[]
   >('match_alerts', { p_match_ids: matchIds });
   if (error) throw toDbError('match_alerts', error);
@@ -41,6 +55,13 @@ export async function matchAlerts(matchIds: string[]): Promise<MatchAlert[]> {
     handover: r.found_handover,
     locale: r.locale,
     email: r.email,
+    other: {
+      lineId: r.other_line_id,
+      phone: r.other_phone,
+      email: r.other_email,
+      district: r.other_district,
+      policeNote: r.other_police_note,
+    },
   }));
 }
 

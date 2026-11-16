@@ -22,7 +22,6 @@ import { FoundResults, type FoundResult } from '@/components/results/FoundResult
 import { Alert } from '@/components/ui/Alert';
 import { Button, buttonClass } from '@/components/ui/Button';
 import { ConsentField } from '@/components/forms/ConsentField';
-import { Checkbox } from '@/components/ui/Field';
 import { Stepper } from '@/components/ui/Stepper';
 import { Link } from '@/i18n/navigation';
 import { CONSENT_VERSION } from '@/lib/config/app';
@@ -53,7 +52,7 @@ interface Created {
   deviceToken: string;
   batchId: string;
   matches: { matchId: string; kind: 'exact' | 'near' }[];
-  /** An SNS confirmation email is on its way (the owner opted in to alerts). */
+  /** Match alerts by email are on (the owner gave an email). */
   alertsPending: boolean;
 }
 
@@ -69,7 +68,6 @@ export function LostFlow() {
   const [plate, setPlate] = useState<PlateDraft>(EMPTY_DRAFT);
   const [contact, setContact] = useState<ContactDraft>(EMPTY_CONTACT);
   const [note, setNote] = useState('');
-  const [notifyEmail, setNotifyEmail] = useState(false);
   const [consent, setConsent] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const turnstile = useRef<TurnstileHandle>(null);
@@ -184,7 +182,6 @@ export function LostFlow() {
         plate: plateInput,
         note,
         contact,
-        notifyEmail: ALERTS_ENABLED && notifyEmail && contact.email.trim() !== '',
         consent: true,
         consentVersion: CONSENT_VERSION,
         locale,
@@ -358,15 +355,9 @@ export function LostFlow() {
             errors={contactErrors}
           />
           {ALERTS_ENABLED && contact.email.trim() && (
-            <Checkbox
-              label={tContact('notifyEmail')}
-              checked={notifyEmail}
-              onChange={setNotifyEmail}
-            >
-              <span className="block text-sm text-ink-muted">
-                {tContact('notifyEmailHint', { brand: brand.name[locale] })}
-              </span>
-            </Checkbox>
+            <Alert tone="info" title={tContact('autoAlertTitle')}>
+              <p className="mt-1 text-sm">{tContact('autoAlert', { brand: brand.name[locale] })}</p>
+            </Alert>
           )}
           <NoteField kind="lost" value={note} onChange={setNote} error={contactErrors.note} />
           <div className="grid grid-cols-2 gap-3">

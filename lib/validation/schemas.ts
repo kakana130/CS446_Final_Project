@@ -141,8 +141,6 @@ export const lostCreateSchema = z.object({
   plate: plateInputSchema,
   contact: contactSchema,
   note: noteSchema,
-  /** Email me (Amazon SNS) when a matching plate is found; needs an email in `contact`. */
-  notifyEmail: z.boolean().default(false),
   consent,
   consentVersion: z.string().max(32),
   locale,
@@ -157,8 +155,6 @@ export const foundBatchSchema = z
     consentVersion: z.string().max(32),
     locale,
     handover: z.enum(['with_finder', 'police_station']),
-    /** Email me when the owner reports this plate lost; needs an email in `contact`. */
-    notifyEmail: z.boolean().default(false),
     policeStationNote: z.string().trim().max(120).default(''),
     district: z.string().trim().max(80).default(''),
     note: noteSchema,

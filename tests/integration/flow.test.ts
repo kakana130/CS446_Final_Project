@@ -175,13 +175,12 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
   let lostDeviceToken = '';
   let finderDeviceToken = '';
 
-  it('creates a lost watch (no matches yet) and asks SNS to confirm email alerts', async () => {
+  it('creates a lost watch (no matches yet) and signs its email up for alerts automatically', async () => {
     const res = await routes.lost.POST(
       jsonRequest('/api/lost', {
         ...base,
         plate,
         contact: { ...contact, email: ownerEmail },
-        notifyEmail: true,
         note: 'ป้ายหลัง มีสติกเกอร์',
       }),
       noParams,
@@ -315,6 +314,14 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
         foundAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
         handover: 'police_station',
         locale: 'th',
+        // The finder's contact goes into the owner's email (no email: they didn't show one).
+        other: {
+          lineId: null,
+          phone: expect.any(String),
+          email: null,
+          district: 'บางเขน',
+          policeNote: 'สภ.ทดสอบ',
+        },
       },
     ]);
     // Only the hash travels with alerts, never the email.
@@ -585,20 +592,19 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
     expect(left).not.toContain(foundPostId);
   });
 
-  // Email alerts both ways: a finder who opts in hears when the owner reports later.
+  // Email alerts both ways: a finder who gave an email hears when the owner reports later.
   const plate2 = { ...plate, number: String(1000 + ((Number(number) - 1000 + 4500) % 8999)) };
   const finderEmail = `itest.finder.${number}@example.com`;
   let finderKey = '';
   let batch2 = '';
   let upload2 = '';
 
-  it('lets a finder opt in to email alerts and asks SNS to confirm', async () => {
+  it('signs a finder who gives an email up for alerts automatically', async () => {
     const before = lambdaEvents.length;
     const res = await routes.batch.POST(
       jsonRequest('/api/found/batch', {
         ...base,
         contact: { phone: '0812345679', email: finderEmail },
-        notifyEmail: true,
         handover: 'with_finder',
       }),
       noParams,
@@ -629,7 +635,7 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
     expect((await up.json()).matches).toHaveLength(0);
   });
 
-  it('alerts the opted-in finder when the owner reports the plate lost later', async () => {
+  it('emails the finder, with the owner contact, when the owner reports the plate lost later', async () => {
     const before = lambdaEvents.length;
     const res = await routes.lost.POST(
       jsonRequest('/api/lost', { ...base, plate: plate2, contact: { lineId: 'itest.owner2' } }),
@@ -654,6 +660,14 @@ describe.skipIf(!configured)('lost → found → match (real Postgres)', () => {
         foundAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
         handover: 'with_finder',
         locale: 'th',
+        // The owner's contact goes into the finder's email.
+        other: {
+          lineId: 'itest.owner2',
+          phone: null,
+          email: null,
+          district: null,
+          policeNote: null,
+        },
       },
     ]);
     expect(JSON.stringify(notify[0])).not.toContain(finderEmail);

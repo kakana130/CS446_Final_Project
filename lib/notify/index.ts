@@ -1,7 +1,7 @@
 import 'server-only';
 import { createHmac } from 'node:crypto';
 import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
-import { alertEmails, markMatchesNotified, matchAlerts } from '@/lib/db/alerts';
+import { alertEmails, markMatchesNotified, matchAlerts, type MatchAlert } from '@/lib/db/alerts';
 import type { RecordedMatch } from '@/lib/db/matches';
 import { requireEnv, serverEnv } from '@/lib/env/server';
 import { logError } from '@/lib/log';
@@ -14,7 +14,8 @@ import { logError } from '@/lib/log';
  *  - notify:     publishes one message per new match with that hash as a message attribute,
  *                so only that person's subscription receives it;
  *  - prune:      unsubscribes every confirmed email whose hash is no longer in the keep list.
- * Emails go to Lambda only for `subscribe`; alerts and prunes carry hashes.
+ * The recipient's email goes to Lambda only for `subscribe`; alerts carry their hash, plus the
+ * other side's contact (shown in the email), and prunes carry hashes.
  */
 
 export function alertsConfigured(): boolean {
@@ -48,6 +49,8 @@ type NotifyEvent =
         handover: 'with_finder' | 'police_station' | null;
         /** The site language the recipient used: links in the email open that language. */
         locale: 'th' | 'en';
+        /** The other side's contact, so the email alone is enough to get in touch. */
+        other: MatchAlert['other'];
       }[];
     }
   | { action: 'prune'; keep: string[] };
@@ -91,6 +94,7 @@ export async function notifyNewMatches(matches: RecordedMatch[]): Promise<void> 
       foundAt: a.foundAt,
       handover: a.handover,
       locale: a.locale,
+      other: a.other,
     })),
   });
   await markMatchesNotified([...new Set(alerts.map((a) => a.matchId))]);

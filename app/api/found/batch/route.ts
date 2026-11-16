@@ -24,7 +24,9 @@ export const POST = apiRoute('api/found/batch', async (request, { ip, ipHash }) 
   }
 
   // Alerts by email through Amazon SNS when the owner reports this plate lost later.
-  const alertEmail = body.notifyEmail && alertsConfigured() ? body.contact.email : null;
+  // Anyone who gives an email gets match alerts by email (Amazon SNS sends a confirmation
+  // the first time an address is used).
+  const alertEmail = alertsConfigured() ? body.contact.email : null;
 
   const deviceToken = randomToken();
   const uploadToken = randomToken();

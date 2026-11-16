@@ -8,9 +8,11 @@
 //   { action: 'subscribe', email, ownerKey }
 //       Email subscription filtered on the owner's key. SNS emails a confirmation link first.
 //   { action: 'notify', appOrigin,
-//     alerts: [{ matchId, ownerKey, role, plate, otherPlate, kind, foundAt, handover, locale }] }
-//       One English email per recipient (role 'owner' or 'finder'); only the subscription whose
-//       filter has that key receives it. `locale` picks the language of links and button names.
+//     alerts: [{ matchId, ownerKey, role, plate, otherPlate, kind, foundAt, handover, locale,
+//                 other }] }
+//       One English email per recipient (role 'owner' or 'finder') with the other side's
+//       contact (`other`: lineId, phone, email, district, policeNote); only the subscription
+//       whose filter has that key receives it. `locale` picks the language of links and names.
 //   { action: 'prune', keep: [ownerKey, ...] }
 //       Unsubscribe confirmed subscriptions whose key is not in `keep` (retention).
 //
@@ -63,33 +65,18 @@ async function subscribe({ email, ownerKey }) {
   return { subscribed: 1 };
 }
 
-// Button and page names as the owner sees them on the site, in the language they used.
+// Page and button names as the recipient sees them on the site, in the language they used.
 const UI = {
   th: {
-    reveal: "ดูช่องทางติดต่อคนที่เก็บป้ายได้ (See the finder's contact details)",
     myPosts: 'โพสต์ของฉัน (My posts)',
     resolve: 'ได้ป้ายคืนแล้ว (I got my plate back)',
-    optIn: 'ส่งอีเมลแจ้งฉันเมื่อมีคนเจอป้ายนี้ (Email me when someone finds this plate)',
-    ownerContact: "ดูช่องทางติดต่อเจ้าของป้าย (See the owner's contact details)",
     returned: 'คืนป้ายให้เจ้าของแล้ว (Returned to the owner)',
-    optInFound:
-      'ส่งอีเมลแจ้งฉันเมื่อเจ้าของป้ายมาแจ้งหาย (Email me when the owner reports this plate lost)',
   },
   en: {
-    reveal: "See the finder's contact details",
     myPosts: 'My posts',
     resolve: 'I got my plate back',
-    optIn: 'Email me when someone finds this plate',
-    ownerContact: "See the owner's contact details",
     returned: 'Returned to the owner',
-    optInFound: 'Email me when the owner reports this plate lost',
   },
-};
-
-const WHERE = {
-  with_finder: 'With the person who found it',
-  police_station:
-    "Handed in at a police station (which one is shown with the finder's contact details)",
 };
 
 function foundWhen(iso) {
@@ -105,6 +92,25 @@ function foundWhen(iso) {
   }).format(d)} (Bangkok time)`;
 }
 
+const text = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
+
+// The other side's contact details, one per line (LINE gets its add-friend link too).
+function contactLines(other) {
+  const lineId = text(other?.lineId, 64);
+  const phone = text(other?.phone, 32);
+  const email = text(other?.email, 254);
+  const lines = [];
+  if (lineId) {
+    const url = lineId.startsWith('@')
+      ? `https://line.me/R/ti/p/${encodeURIComponent(lineId)}`
+      : `https://line.me/ti/p/~${encodeURIComponent(lineId)}`;
+    lines.push(`- LINE: ${lineId} (${url})`);
+  }
+  if (phone) lines.push(`- Phone: ${phone}`);
+  if (email) lines.push(`- Email: ${email}`);
+  return lines.length ? lines : ['- (See the match page for their contact details.)'];
+}
+
 // SNS email subjects must be ASCII, under 100 characters.
 function subject(role, kind) {
   if (role === 'finder') {
@@ -118,12 +124,22 @@ function subject(role, kind) {
 }
 
 // Plain text: SNS sends email bodies as plain text and adds its own unsubscribe footer.
-// For the lost plate's owner: `plate` is their lost plate, `otherPlate` the found one.
-function ownerMessage({ appOrigin, matchId, plate, otherPlate, kind, foundAt, handover, locale }) {
+// For the lost plate's owner: `plate` is their lost plate, `otherPlate` the found one, and
+// `other` the finder's contact.
+function ownerMessage(f) {
+  const { appOrigin, matchId, plate, otherPlate, kind, foundAt, handover, locale, other } = f;
   const ui = UI[locale === 'en' ? 'en' : 'th'];
   const base = `${appOrigin}${locale === 'en' ? '/en' : ''}`;
   const exact = kind === 'exact';
   const when = foundWhen(foundAt);
+  const district = text(other?.district, 80);
+  const station = text(other?.policeNote, 120);
+  let where = null;
+  if (handover === 'police_station') {
+    where = `Handed in at a police station${station ? `: ${station}` : ''}`;
+  } else if (handover === 'with_finder') {
+    where = `With the person who found it${district ? ` (area: ${district})` : ''}`;
+  }
   return [
     'Hello,',
     '',
@@ -137,31 +153,35 @@ function ownerMessage({ appOrigin, matchId, plate, otherPlate, kind, foundAt, ha
       ? 'Match: Exact (same number)'
       : 'Match: Possible (the numbers are close but not identical, so check the photo carefully)',
     ...(when ? [`Found: ${when}`] : []),
-    ...(WHERE[handover] ? [`Where the plate is now: ${WHERE[handover]}`] : []),
+    ...(where ? [`Where the plate is now: ${where}`] : []),
     '',
-    'SEE THE PHOTO AND CONTACT THE FINDER',
-    `${base}/match/${matchId}`,
-    `Check the photo first. If it is your plate, tap "${ui.reveal}" on that page to get the finder's LINE ID, phone or email and arrange to get it back.`,
-    '',
-    'STAY SAFE',
+    'READ THIS BEFORE YOU CONTACT THEM',
     '- Never transfer money before you have the plate back.',
     '- Ask the finder for a photo of the plate next to a note with your name, so you know they really have it.',
     '- Bring your vehicle registration book and ID card when you collect it, to show the plate is yours.',
+    '',
+    "THE FINDER'S CONTACT",
+    ...contactLines(other),
+    '',
+    'PHOTO OF THE PLATE THEY FOUND',
+    `${base}/match/${matchId}`,
     '',
     'GOT YOUR PLATE BACK?',
     `Open "${ui.myPosts}" on the phone or computer you used to report it, and tap "${ui.resolve}". This closes your report and stops these emails.`,
     `${base}/my-posts`,
     '',
     'WHY YOU GOT THIS EMAIL',
-    `You reported this plate lost on Plate2Home and ticked "${ui.optIn}". To stop these emails without closing your report, use the unsubscribe link at the bottom of this email.`,
+    'You gave this email address when you reported this plate lost on Plate2Home. Plate2Home emails both sides when a plate is matched. To stop these emails without closing your report, use the unsubscribe link at the bottom of this email.',
     '',
     'Plate2Home',
     base,
   ].join('\n');
 }
 
-// For the finder: `plate` is the plate they found, `otherPlate` the one the owner reported lost.
-function finderMessage({ appOrigin, matchId, plate, otherPlate, kind, locale }) {
+// For the finder: `plate` is the plate they found, `otherPlate` the one the owner reported
+// lost, and `other` the owner's contact.
+function finderMessage(f) {
+  const { appOrigin, matchId, plate, otherPlate, kind, locale, other } = f;
   const ui = UI[locale === 'en' ? 'en' : 'th'];
   const base = `${appOrigin}${locale === 'en' ? '/en' : ''}`;
   const exact = kind === 'exact';
@@ -178,21 +198,23 @@ function finderMessage({ appOrigin, matchId, plate, otherPlate, kind, locale }) 
       ? 'Match: Exact (same number)'
       : 'Match: Possible (the numbers are close but not identical)',
     '',
-    'SEE THE MATCH AND CONTACT THE OWNER',
-    `${base}/match/${matchId}`,
-    `Open it on the phone or computer you used to post the plate, then tap "${ui.ownerContact}" to get the owner's LINE ID, phone or email and arrange the handover.`,
-    '',
-    'STAY SAFE',
+    'READ THIS BEFORE YOU HAND IT OVER',
     '- Only hand the plate over to someone who shows you the vehicle registration book with the same plate number, and an ID card with the same name.',
     '- If more than one person claims the plate, or you are not sure, take it to a police station instead.',
     '- Never pay or ask for money to return a plate.',
+    '',
+    "THE OWNER'S CONTACT",
+    ...contactLines(other),
+    '',
+    'THE MATCH',
+    `${base}/match/${matchId}`,
     '',
     'RETURNED IT?',
     `Open "${ui.myPosts}" on the phone or computer you used to post it, and tap "${ui.returned}". This closes your post and stops these emails.`,
     `${base}/my-posts`,
     '',
     'WHY YOU GOT THIS EMAIL',
-    `You posted this plate as found on Plate2Home and ticked "${ui.optInFound}". To stop these emails without closing your post, use the unsubscribe link at the bottom of this email.`,
+    'You gave this email address when you posted this plate as found on Plate2Home. Plate2Home emails both sides when a plate is matched. To stop these emails without closing your post, use the unsubscribe link at the bottom of this email.',
     '',
     'Plate2Home',
     base,
@@ -220,6 +242,7 @@ async function notify({ appOrigin, alerts }) {
       foundAt: typeof a.foundAt === 'string' ? a.foundAt : '',
       handover: a.handover,
       locale: a.locale,
+      other: a.other && typeof a.other === 'object' ? a.other : null,
     };
     await sns.send(
       new PublishCommand({
