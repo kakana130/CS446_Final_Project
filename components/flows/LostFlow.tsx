@@ -29,6 +29,7 @@ import { CONSENT_VERSION } from '@/lib/config/app';
 import { postJson } from '@/lib/client/api';
 import { rememberDevicePost } from '@/lib/client/devices';
 import { ACCOUNTS_ENABLED } from '@/lib/client/session';
+import { brand } from '@/lib/config/brand';
 import {
   ownFoundIds,
   ownPostsFor,
@@ -52,6 +53,8 @@ interface Created {
   deviceToken: string;
   batchId: string;
   matches: { matchId: string; kind: 'exact' | 'near' }[];
+  /** An SNS confirmation email is on its way (the owner opted in to alerts). */
+  alertsPending: boolean;
 }
 
 export function LostFlow() {
@@ -222,6 +225,13 @@ export function LostFlow() {
       <div className="space-y-5">
         <Alert tone="success" title={t('doneTitle')} live />
         <PlateView plate={normalizePlate(plateInput)} size="md" />
+        {created.alertsPending && (
+          <Alert tone="info" title={t('doneAlertsTitle')}>
+            <p className="mt-1">
+              {t('doneAlerts', { email: contact.email.trim(), brand: brand.name[locale] })}
+            </p>
+          </Alert>
+        )}
         {created.matches.length > 0 && (
           <Alert tone="highlight" title={t('doneMatches')}>
             <ul className="mt-2 space-y-2">
@@ -353,7 +363,9 @@ export function LostFlow() {
               checked={notifyEmail}
               onChange={setNotifyEmail}
             >
-              <span className="block text-sm text-ink-muted">{tContact('notifyEmailHint')}</span>
+              <span className="block text-sm text-ink-muted">
+                {tContact('notifyEmailHint', { brand: brand.name[locale] })}
+              </span>
             </Checkbox>
           )}
           <NoteField kind="lost" value={note} onChange={setNote} error={contactErrors.note} />
