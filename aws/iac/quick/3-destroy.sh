@@ -15,6 +15,7 @@ export TF_DATA_DIR=/tmp/plate2home-tofu
 
 if [ -d "$WORK" ]; then
   cd "$WORK"
+  echo ">> Preparing OpenTofu (downloads its AWS plugin, about 1 minute)"
   tofu init -input=false >/dev/null
   echo ">> tofu destroy (about 10 minutes, mostly RDS)"
   tofu destroy -auto-approve -input=false -var "repo_dir=$REPO"

@@ -15,6 +15,7 @@ export PATH="$HOME/.local/bin:$PATH"
 # 1 GB. The state stays in $WORK; `tofu init` fetches the plugins again in a new session.
 export TF_DATA_DIR=/tmp/plate2home-tofu
 cd "$WORK"
+echo ">> Preparing OpenTofu (downloads its AWS plugin, about 1 minute)"
 tofu init -input=false >/dev/null
 
 BUILD="$(aws ec2 describe-instances \

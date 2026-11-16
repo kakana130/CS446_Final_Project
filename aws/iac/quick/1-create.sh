@@ -47,6 +47,7 @@ for N in public1 public2; do
 done
 
 echo ">> Creating RDS, S3, SNS, Lambda x2, EventBridge and the load balancer (about 10 minutes)"
+echo ">> Preparing OpenTofu (downloads its AWS plugin, about 1 minute)"
 tofu init -input=false >/dev/null
 # Older 02-s3.tf used aws_s3_bucket, which Learner Lab can't read back. Forget it here (the
 # bucket itself stays and is adopted by the new 02-s3.tf).
