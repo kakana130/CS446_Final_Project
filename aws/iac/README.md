@@ -32,10 +32,10 @@ The daily job uses an EventBridge **rule** (UTC cron, `0 20 * * ? *` = 03:00 in 
 rather than EventBridge Scheduler, because a rule needs no IAM role. The full Thai
 walkthrough is `Plate2Home-AWS-Deploy-TH-OpenTofu.md`, next to the project folder.
 
-## Quick version (`quick/`)
+## Simple version (scripts in `quick/`)
 
-The same files, run for you by three scripts, for the "just follow it" guide
-(`Plate2Home-AWS-Deploy-TH-Quick.md`). After the VPC, security groups and the build instance
+The same files, run for you by three scripts, for the simple guide
+(`Plate2Home-AWS-Deploy-TH-Simple.md` and its Light/Dark PDFs). After the VPC, security groups and the build instance
 exist:
 
 1. `bash ~/CS446_Final_Project/aws/iac/quick/1-create.sh` installs OpenTofu, makes a random
