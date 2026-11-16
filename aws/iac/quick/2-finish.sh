@@ -18,6 +18,23 @@ cd "$WORK"
 echo ">> Preparing OpenTofu (downloads its AWS plugin, about 1 minute)"
 tofu init -input=false >/dev/null
 
+# When the Learner Lab session ends (its timer runs out), AWS denies every call through the
+# voc-cancel-cred policy. Stop with a clear message instead of waiting on errors.
+check_lab() {
+  local err
+  if ! err="$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names plate2home-asg \
+    --query 'AutoScalingGroups[0].AutoScalingGroupName' --output text 2>&1 >/dev/null)" &&
+    grep -q voc-cancel-cred <<<"$err"; then
+    echo "!! The Learner Lab session ended (the timer ran out), so AWS refuses every call."
+    echo "   1. AWS Academy: press Start Lab and wait for the green dot."
+    echo "   2. Click AWS (green dot) to open the console again, then open a NEW CloudShell"
+    echo "      (this window keeps the old, cancelled access)."
+    echo "   3. Run this script again: it carries on where it stopped (the new image is kept)."
+    exit 1
+  fi
+}
+check_lab
+
 builds() {
   aws ec2 describe-instances \
     --filters "Name=tag:Name,Values=*plate2home-build*" "Name=instance-state-name,Values=$1" \
@@ -75,18 +92,6 @@ asg() {
 }
 VERSION="$(asg LaunchTemplate.Version)"
 read -r -a OLD <<<"$(asg "Instances[?LaunchTemplate.Version!='$VERSION'].InstanceId")"
-# When the Learner Lab session ends (its timer runs out), AWS denies every call through the
-# voc-cancel-cred policy. Stop with a clear message instead of waiting on errors.
-check_lab() {
-  local err
-  if ! err="$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names plate2home-asg     --query 'AutoScalingGroups[0].AutoScalingGroupName' --output text 2>&1 >/dev/null)" &&
-    grep -q voc-cancel-cred <<<"$err"; then
-    echo "!! The Learner Lab session ended (the timer ran out), so AWS refuses every call."
-    echo "   Start Lab again, open CloudShell again, then run this script again: it carries on"
-    echo "   where it stopped (the new image is kept)."
-    exit 1
-  fi
-}
 healthy_new() {
   local n=0 id state
   for id in $(asg "Instances[?LaunchTemplate.Version=='$VERSION' && LifecycleState=='InService'].InstanceId"); do
