@@ -53,7 +53,8 @@ exist:
    instance. For a new version: `update.sh` on the build instance, delete the `ami_id` line in
    `terraform.tfvars`, run it again.
 3. `bash ~/CS446_Final_Project/aws/iac/quick/3-destroy.sh` runs `tofu destroy`, terminates the
-   build instance and deletes its images and snapshots. The VPC is deleted in the console.
+   build instance, deletes its images and snapshots, then the three security groups and the
+   VPC, and lists anything left over.
 4. `bash ~/CS446_Final_Project/aws/iac/quick/reset-all.sh` starts over: it deletes every
    Plate2Home resource by name, without the OpenTofu state (also leftovers of the Manual
    guide), including the VPC, then clears `~/plate2home-iac`. It asks you to type `DELETE`.
