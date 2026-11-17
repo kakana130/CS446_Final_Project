@@ -102,7 +102,14 @@ fi
 
 echo ">> Creating the launch template and the Auto Scaling group"
 cp "$REPO/aws/iac/08-asg.tf" .
-tofu apply -auto-approve -input=false -var "repo_dir=$REPO"
+# Auto Scaling can still see a just-finished image as "pending" for a minute or two after EC2
+# reports it available, so try again a few times before giving up.
+for TRY in 1 2 3 4 5; do
+  if tofu apply -auto-approve -input=false -var "repo_dir=$REPO"; then break; fi
+  if [ "$TRY" = 5 ]; then exit 1; fi
+  echo ">> Trying again in 60 seconds (AWS may still be finishing the new image) - try $((TRY + 1)) of 5"
+  sleep 60
+done
 
 TG="$(aws elbv2 describe-target-groups --names plate2home-tg \
   --query 'TargetGroups[0].TargetGroupArn' --output text)"
