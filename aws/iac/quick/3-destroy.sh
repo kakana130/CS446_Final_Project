@@ -18,6 +18,11 @@ if [ -d "$WORK" ]; then
   cd "$WORK"
   echo ">> Preparing OpenTofu (downloads its AWS plugin, about 1 minute)"
   tofu init -input=false >/dev/null
+  # Destroy still asks for every variable, and an earlier clean-up removed ami_id. Any value
+  # works here: nothing is created from it.
+  if [ -f 08-asg.tf ] && ! grep -q '^ami_id' terraform.tfvars 2>/dev/null; then
+    echo 'ami_id = "none"' >>terraform.tfvars
+  fi
   echo ">> tofu destroy (about 10 minutes, mostly RDS)"
   tofu destroy -auto-approve -input=false -var "repo_dir=$REPO"
 fi

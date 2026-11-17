@@ -112,6 +112,19 @@ for R in aws_s3_bucket_public_access_block.crops aws_s3_bucket.crops; do
     *$'\n'"$R"$'\n'*) tofu state rm "$R" >/dev/null && echo ">> Removed old $R from the state" ;;
   esac
 done
+# 08-asg.tf from an earlier part 2 needs ami_id, which 3-destroy.sh (or a lost image) removes.
+# Nothing of it exists any more: leave it out until 2-finish.sh copies it again. It still
+# exists: put its image back into terraform.tfvars, so the apply leaves the web servers alone.
+if [ -f 08-asg.tf ] && ! grep -q '^ami_id' terraform.tfvars; then
+  case $'\n'"$STATE"$'\n' in
+    *$'\n'aws_launch_template.web$'\n'*)
+      LT_AMI="$(aws ec2 describe-launch-template-versions --launch-template-name plate2home-lt \
+        --versions '$Latest' --query 'LaunchTemplateVersions[0].LaunchTemplateData.ImageId' --output text)"
+      echo "ami_id = \"$LT_AMI\"" >>terraform.tfvars
+      ;;
+    *) rm -f 08-asg.tf ;;
+  esac
+fi
 tofu apply -auto-approve -input=false -var "repo_dir=$REPO"
 
 CLONE_URL="$(git -C "$REPO" remote get-url origin)"
