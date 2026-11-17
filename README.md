@@ -1,117 +1,107 @@
-# Plate2Home (AWS edition)
+# Plate2Home: CS446 Final Project
 
-A mobile-first web app that reunites people in Thailand with vehicle licence plates lost in
-floods. People who **lost** a plate register a watch. People who **found** plates photograph
-them; the app finds and reads the plates in the browser and matches them against the watches
-instantly. It is non-commercial, posting needs no account, and data is deleted automatically.
+Set-up instructions for deploying Plate2Home on AWS (Learner Lab, us-east-1), by **BBQ Make Friends**.
 
-This fork runs on **Amazon Web Services** (CS446 final project). Hosting, database, storage,
-sign-in and the daily job moved from Vercel + Supabase to AWS. It also adds **email alerts on
-a match** (AWS Lambda + Amazon SNS).
+**Slides (PDF):** [`docs/slides/CS446_Final_Project_Plate2Home.pdf`](docs/slides/CS446_Final_Project_Plate2Home.pdf)
 
-> **Deploying it:** follow [`AWS-DEPLOY.md`](AWS-DEPLOY.md). It lists every AWS service used
-> and gives the console steps for each one, in order.
+> The long `echo '…'` line on slides 14, 15 and 17 is hidden: it holds the database password and app
+> secrets. Yours is printed by `1-create.sh` in CloudShell.
 
-## What works today
+![Plate2Home: Set up instructions](docs/slides/01.jpg)
 
-- **Lost, found, search and match flows** with Turnstile, rate limits and origin checks on every
-  write. Lost watches never appear in search; an owner's contact is shown only to the finder of
-  a matched found plate that has a photo (see the [threat model](docs/threat-model.md)).
-- **Plate reading in the browser** (photos never leave the device until the user confirms a
-  crop): a plate finder suggests boxes on the photo, the user confirms each crop, and a small
-  CNN trained on synthetic plate lines (`ml/recognizer`) reads the number line. See
-  [`docs/ocr-eval.md`](docs/ocr-eval.md).
-- **Email alerts (new):** the owner can tick "email me when someone finds this plate". Amazon
-  SNS asks them to confirm, and every new match is emailed by the `plate2home-notify` Lambda.
-- **No accounts needed:** posts belong to the device that made them. (Optional sign-in through
-  Amazon Cognito is still in the code, but it needs an https site, so the plain-http EC2
-  deployment leaves it off with `NEXT_PUBLIC_FEATURE_ACCOUNTS=false`.)
-- **Reports, feedback and an admin area**, Terms of Service and Privacy Policy in Thai and
-  English, and a **daily retention job** (EventBridge → Lambda) that really deletes expired data,
-  photos and alert subscriptions.
+### Plate2Home Website Overview
 
-## Stack
+![Plate2Home Website Overview](docs/slides/02.jpg)
 
-Next.js 16 · TypeScript strict · Tailwind CSS 4 · next-intl 4 (Thai default, English at `/en`) ·
-**AWS:** EC2 (Node.js 24, systemd, nginx) in an Auto Scaling group behind an Application Load
-Balancer, in the project's own VPC · RDS for PostgreSQL · S3 ·
-Lambda (Node.js 22) · SNS · EventBridge Scheduler · Tesseract.js + a custom recognizer ·
-Vitest · PGlite for database tests and local development · Playwright.
+### AWS Service List
 
-## Getting started (local, no AWS account needed)
+![AWS Service List](docs/slides/03.jpg)
 
-Requirements: Node 24, npm 11.
+### AWS Architecture diagram
 
-```bash
-npm ci
-```
+![AWS Architecture diagram](docs/slides/04.jpg)
 
-```bash
-cp .env.example .env.local
-```
+### Set up Guide: the 8 steps
 
-In `.env.local` set `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/postgres`,
-`DATABASE_SSL=off`, `DATABASE_POOL_MAX=1`, `IP_HASH_SECRET` (any 32+ characters) and leave the
-Cognito, S3 and Lambda values empty. Then start a throwaway local Postgres in one terminal:
+![Set up Guide: the 8 steps](docs/slides/05.jpg)
 
-```bash
-npm run db:local
-```
+### 1. สร้าง VPC
 
-and in another terminal:
+![1. สร้าง VPC](docs/slides/06.jpg)
 
-```bash
-npm run db:migrate
-```
+### 2. Security Group 1: plate2home-alb
 
-```bash
-npm run dev
-```
+![2. Security Group 1: plate2home-alb](docs/slides/07.jpg)
 
-Open http://localhost:3000 (Thai) or http://localhost:3000/en (English). Lost reports, search
-and manage work locally. Uploading found-plate photos needs a real S3 bucket (`S3_BUCKET`,
-`AWS_REGION` and AWS credentials).
+### 2. Security Group 2: plate2home-web
 
-## Checks
+![2. Security Group 2: plate2home-web](docs/slides/08.jpg)
 
-CI (`.github/workflows/ci.yml`) runs all of these on every push; the migration and API
-integration tests run against a PostgreSQL 17 service container, like RDS.
+### 2. Security Group 2: plate2home-web (inbound rules)
 
-| Command                                  | What it does                                                                         |
-| ---------------------------------------- | ------------------------------------------------------------------------------------ |
-| `npm run check`                          | Everything below except the build                                                    |
-| `npm run lint`                           | ESLint, including the no-hard-coded-text and no-server-env-in-client rules           |
-| `npm run typecheck`                      | `next typegen` + `tsc`                                                               |
-| `npm run test:unit`                      | Unit tests (plate module, matching, OCR, CSP, env, messages, lint rule, secret scan) |
-| `npm run test:db`                        | Migrations + RLS tests. PGlite by default; set `DATABASE_URL` to use a real database |
-| `npm run test:integration`               | API flow against real Postgres (`DATABASE_URL`); S3 and Lambda calls intercepted     |
-| `npx playwright test`                    | E2E in mobile viewports (needs a running app with a database and S3 bucket)          |
-| `npm run check:contrast`                 | WCAG contrast of the design tokens, both themes                                      |
-| `npm run check:provinces`                | Province seed migration matches `data/provinces.json`                                |
-| `npm run build && npm run check:secrets` | Production build, then scan client files for secrets                                 |
+![2. Security Group 2: plate2home-web (inbound rules)](docs/slides/09.jpg)
 
-## Project layout
+### 2. Security Group 3: plate2home-db
 
-```
-app/[locale]/        localized pages (root layout)
-app/admin/           admin area (second root layout)
-app/api/             route handlers: posting, search, reveal, auth, reports, cron
-components/          UI (flows, plate input, OCR overlay, site chrome, theme, ui recipes)
-i18n/                next-intl routing, navigation, request config
-lib/                 plate module, matching, OCR, auth, config, env, security, db (server-only)
-messages/            th.json, en.json
-ml/recognizer/       synthetic data, training and export of the plate-text recognizer
-supabase/            SQL migrations (applied to RDS by npm run db:migrate), DB tests
-aws/                 Lambda functions, EC2 setup/update scripts, RDS platform shim
-scripts/             db migrate/local, contrast check, province seed, secret scan, OCR assets
-eslint-rules/        project ESLint rules
-docs/                plan, architecture, decisions, threat model, OCR evaluation, legal TODOs
-```
+![2. Security Group 3: plate2home-db](docs/slides/10.jpg)
 
-## Docs
+### 3. สร้าง EC2
 
-- **[AWS setup guide](AWS-DEPLOY.md)**
-- [Plan](docs/plan.md) · [Architecture](docs/architecture.md) · [Decisions](docs/decisions.md)
-- [Threat model](docs/threat-model.md) · [Security checklist](docs/security-checklist.md) ·
-  [OCR evaluation](docs/ocr-eval.md) · [Plate formats](docs/plate-formats.md) ·
-  [Legal TODOs](docs/legal-todo.md)
+![3. สร้าง EC2](docs/slides/11.jpg)
+
+### 3. สร้าง EC2: Network settings
+
+![3. สร้าง EC2: Network settings](docs/slides/12.jpg)
+
+### 3. สร้าง EC2: storage and IAM profile
+
+![3. สร้าง EC2: storage and IAM profile](docs/slides/13.jpg)
+
+### 4. CloudShell รอบ 1
+
+![4. CloudShell รอบ 1](docs/slides/14.jpg)
+
+### 4. CloudShell รอบ 1: copy the long line
+
+![4. CloudShell รอบ 1: copy the long line](docs/slides/15.jpg)
+
+### 5. EC2 Instance Connect
+
+![5. EC2 Instance Connect](docs/slides/16.jpg)
+
+### 5. EC2 Instance Connect: paste and wait
+
+![5. EC2 Instance Connect: paste and wait](docs/slides/17.jpg)
+
+### 6. CloudShell รอบ 2
+
+![6. CloudShell รอบ 2](docs/slides/18.jpg)
+
+### 7. Open Website
+
+![7. Open Website](docs/slides/19.jpg)
+
+### 8. Clean up
+
+![8. Clean up](docs/slides/20.jpg)
+
+### Troubleshooting
+
+![Troubleshooting](docs/slides/21.jpg)
+
+### Troubleshooting: CloudShell เต็ม
+
+![Troubleshooting: CloudShell เต็ม](docs/slides/22.jpg)
+
+### Troubleshooting: เริ่มใหม่ทั้งหมด
+
+![Troubleshooting: เริ่มใหม่ทั้งหมด](docs/slides/23.jpg)
+
+### Thank you
+
+![Thank you](docs/slides/24.jpg)
+
+---
+
+More: [project overview](docs/project-overview.md) (features, stack, local development) ·
+[AWS-DEPLOY.md](AWS-DEPLOY.md) (console steps) · [aws/iac/README.md](aws/iac/README.md) (OpenTofu files and scripts)
