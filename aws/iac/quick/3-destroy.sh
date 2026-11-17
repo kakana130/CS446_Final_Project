@@ -38,6 +38,8 @@ for AMI in $(aws ec2 describe-images --owners self --filters "Name=name,Values=p
   aws ec2 deregister-image --image-id "$AMI"
   for S in $SNAPS; do aws ec2 delete-snapshot --snapshot-id "$S"; done
 done
+# The images are gone, so a later 2-finish.sh must make a new one.
+if [ -f "$WORK/terraform.tfvars" ]; then sed -i '/^ami_id/d' "$WORK/terraform.tfvars"; fi
 
 echo
 echo "CLEAN-UP DONE. Last step: VPC -> Your VPCs -> plate2home-vpc -> Actions -> Delete VPC"

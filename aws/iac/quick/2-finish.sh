@@ -56,9 +56,26 @@ else
   exit 1
 fi
 
+image_state() { # available, pending, failed, ... or None when the image is gone
+  aws ec2 describe-images --image-ids "$1" --query 'Images[0].State' --output text 2>/dev/null || echo None
+}
+
+# The image from an earlier run, if it still exists. 3-destroy.sh (or a hand clean-up) deletes
+# images, and an ami_id left in terraform.tfvars would then point at nothing.
+AMI=""
 if grep -q '^ami_id' terraform.tfvars; then
   AMI="$(sed -n 's/^ami_id *= *"\(.*\)"/\1/p' terraform.tfvars)"
-else
+  STATE="$(image_state "$AMI")"
+  case "$STATE" in
+    available | pending) ;;
+    *)
+      echo ">> The saved image $AMI is gone ($STATE), so a new one is made"
+      sed -i '/^ami_id/d' terraform.tfvars
+      AMI=""
+      ;;
+  esac
+fi
+if [ -z "$AMI" ]; then
   NAME="plate2home-ami-$(date +%Y%m%d-%H%M)"
   echo ">> Creating image $NAME from $BUILD (the instance restarts once)"
   AMI="$(aws ec2 create-image --instance-id "$BUILD" --name "$NAME" --query ImageId --output text)"
@@ -66,16 +83,22 @@ else
 fi
 
 echo ">> Waiting for image $AMI (5-10 minutes)"
-for _ in $(seq 1 60); do
-  STATE="$(aws ec2 describe-images --image-ids "$AMI" --query 'Images[0].State' --output text)"
+for _ in $(seq 1 90); do
+  STATE="$(image_state "$AMI")"
   [ "$STATE" = "available" ] && break
-  if [ "$STATE" = "failed" ]; then
-    echo "!! The image failed. Delete the ami_id line in ~/plate2home-iac/terraform.tfvars and run again."
+  if [ "$STATE" = "failed" ] || [ "$STATE" = "None" ]; then
+    sed -i '/^ami_id/d' terraform.tfvars
+    echo "!! The image $AMI is $STATE. Run this script again to make a new one."
     exit 1
   fi
   echo "   still $STATE ..."
   sleep 20
 done
+# The Auto Scaling group refuses an image that is not ready yet ("does not exist").
+if [ "$STATE" != "available" ]; then
+  echo "!! The image $AMI is still $STATE after 30 minutes. Wait a few minutes and run this again."
+  exit 1
+fi
 
 echo ">> Creating the launch template and the Auto Scaling group"
 cp "$REPO/aws/iac/08-asg.tf" .
