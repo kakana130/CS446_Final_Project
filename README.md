@@ -2,7 +2,7 @@
 
 Set-up instructions for deploying Plate2Home on AWS (Learner Lab, us-east-1), by **BBQ Make Friends**.
 
-**Slides (PDF):** [`docs/slides/CS446_Final_Project_Plate2Home.pdf`](docs/slides/CS446_Final_Project_Plate2Home.pdf)
+**Slides (PDF):** [`docs/slides/CS446_Final_Project_Plate2Home.pdf`]([docs/slides/CS446_Final_Project_Plate2Home.pdf](https://drive.google.com/file/d/1VuJqN_zSlZ_m-Atmf4c_DrwXjTQoV6sI/view?usp=sharing))
 
 > The long `echo '…'` line on slides 14, 15 and 17 is hidden: it holds the database password and app
 > secrets. Yours is printed by `1-create.sh` in CloudShell.
